@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "kind=floor": {
+      "model": "rustbuild:block/stone_building_block"
+    },
+    "kind=wall": {
+      "model": "rustbuild:block/stone_building_block"
+    },
+    "kind=fill": {
+      "model": "rustbuild:block/stone_building_block"
+    }
+  }
+}
