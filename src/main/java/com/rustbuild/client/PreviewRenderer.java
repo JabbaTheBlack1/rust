@@ -31,7 +31,8 @@ public final class PreviewRenderer {
         Placement p = Resolver.resolve(mc.level, player, BuildingPlanItem.getPiece(stack));
         if (p == null) return;
 
-        PoseStack ps = event.getPoseStack();
+           PoseStack ps = new PoseStack();
+   ps.mulPose(event.getPoseStack());
         Vec3 cam = event.getCamera().getPosition();
         MultiBufferSource.BufferSource buf = mc.renderBuffers().bufferSource();
         VertexConsumer vc = buf.getBuffer(RenderType.lines());
