@@ -53,7 +53,6 @@ tasks.named('jar', Jar).configure {
         'Implementation-Version': project.jar.archiveVersion,
         'Implementation-Vendor' : 'rustbuild'
     ])
-    finalizedBy 'reobfJar'
 }
 
 tasks.withType(JavaCompile).configureEach {
