@@ -7,6 +7,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.material.PushReaction;
 
 import java.util.Locale;
 
@@ -26,6 +27,7 @@ public class BuildingBlock extends Block {
         super(BlockBehaviour.Properties.of()
                 .strength(tier.hardness, tier.resistance)
                 .sound(tier.sound)
+                .pushReaction(PushReaction.BLOCK)
                 .noLootTable());
         this.tier = tier;
         registerDefaultState(stateDefinition.any().setValue(KIND, Kind.WALL));

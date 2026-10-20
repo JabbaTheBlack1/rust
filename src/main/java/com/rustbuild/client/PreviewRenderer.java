@@ -2,8 +2,7 @@ package com.rustbuild.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.rustbuild.block.BuildingBlock;
-import com.rustbuild.build.BlockEntry;
+import com.rustbuild.build.Piece;
 import com.rustbuild.build.Placement;
 import com.rustbuild.build.Resolver;
 import com.rustbuild.item.BuildingPlanItem;
@@ -16,7 +15,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 
-/** Рисует "призрак" элемента: зелёный - можно ставить, красный - нельзя. */
+/** Контур элемента: зелёный - можно ставить, красный - нельзя, оранжевый - проёмы. */
 public final class PreviewRenderer {
     private PreviewRenderer() {}
 
@@ -30,23 +29,26 @@ public final class PreviewRenderer {
 
         Placement p = Resolver.resolve(mc.level, player, BuildingPlanItem.getPiece(stack));
         if (p == null) return;
+        Piece piece = p.piece();
 
-           PoseStack ps = new PoseStack();
-   ps.mulPose(event.getPoseStack());
+        // Поворот камеры уже применён к матрице рендера, поэтому берём ЧИСТЫЙ PoseStack
+        // и сдвигаем координаты относительно камеры.
+        PoseStack ps = new PoseStack();
         Vec3 cam = event.getCamera().getPosition();
         MultiBufferSource.BufferSource buf = mc.renderBuffers().bufferSource();
         VertexConsumer vc = buf.getBuffer(RenderType.lines());
 
-        float r = p.valid() ? 0.2f : 1.0f;
-        float g = p.valid() ? 1.0f : 0.15f;
-        float b = p.valid() ? 0.3f : 0.15f;
+        float r = p.valid() ? 0.25f : 1.0f;
+        float g = p.valid() ? 1.0f : 0.2f;
+        float b = p.valid() ? 0.35f : 0.2f;
+        for (AABB box : piece.previewBoxes()) draw(ps, vc, box, cam, r, g, b);
+        for (AABB box : piece.previewCutouts()) draw(ps, vc, box, cam, 1.0f, 0.65f, 0.1f);
 
-        for (BlockEntry e : p.piece().entries()) {
-            var st = e.state();
-            if (st.getBlock() instanceof BuildingBlock && st.getValue(BuildingBlock.KIND) == BuildingBlock.Kind.FILL) continue;
-            AABB bb = new AABB(e.pos()).move(-cam.x, -cam.y, -cam.z).inflate(0.002);
-            LevelRenderer.renderLineBox(ps, vc, bb, r, g, b, 0.9f);
-        }
         buf.endBatch(RenderType.lines());
+    }
+
+    private static void draw(PoseStack ps, VertexConsumer vc, AABB box, Vec3 cam, float r, float g, float b) {
+        AABB bb = box.move(-cam.x, -cam.y, -cam.z).inflate(0.003);
+        LevelRenderer.renderLineBox(ps, vc, bb, r, g, b, 1.0f);
     }
 }

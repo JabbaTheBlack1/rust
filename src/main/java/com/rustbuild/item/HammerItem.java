@@ -59,5 +59,6 @@ public class HammerItem extends Item {
         tips.add(Component.translatable("item.rustbuild.hammer.tip1").withStyle(ChatFormatting.GRAY));
         tips.add(Component.translatable("item.rustbuild.hammer.tip2").withStyle(ChatFormatting.GRAY));
         tips.add(Component.translatable("item.rustbuild.hammer.tip3").withStyle(ChatFormatting.GRAY));
+        tips.add(Component.translatable("item.rustbuild.radial.tip").withStyle(ChatFormatting.GOLD));
     }
 }

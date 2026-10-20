@@ -5,7 +5,7 @@
   "item.rustbuild.building_plan.tip2": "Shift+ПКМ: следующий элемент",
   "item.rustbuild.hammer.tip1": "ПКМ: улучшить элемент до выбранного тира",
   "item.rustbuild.hammer.tip2": "Shift+ПКМ: выбрать тир",
-  "item.rustbuild.hammer.tip3": "ЛКМ: снести элемент",
+  "item.rustbuild.hammer.tip3": "ЛКМ: снести элемент целиком",
   "piece.rustbuild.foundation": "Фундамент",
   "piece.rustbuild.floor": "Пол/потолок",
   "piece.rustbuild.wall": "Стена",
@@ -40,5 +40,10 @@
   "block.rustbuild.wood_building_block": "Блок постройки (wood)",
   "block.rustbuild.stone_building_block": "Блок постройки (stone)",
   "block.rustbuild.metal_building_block": "Блок постройки (metal)",
-  "block.rustbuild.armored_building_block": "Блок постройки (armored)"
+  "block.rustbuild.armored_building_block": "Блок постройки (armored)",
+  "key.rustbuild.radial": "Радиальное меню строительства",
+  "key.categories.rustbuild": "Rust Building",
+  "menu.rustbuild.pieces": "Элемент постройки",
+  "menu.rustbuild.tiers": "Улучшение",
+  "item.rustbuild.radial.tip": "Зажмите R: радиальное меню"
 }

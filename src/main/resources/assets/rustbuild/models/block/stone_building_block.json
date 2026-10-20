@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:block/cube_all",
   "textures": {
-    "all": "minecraft:block/stone_bricks"
+    "all": "rustbuild:block/stone_wall"
   }
 }

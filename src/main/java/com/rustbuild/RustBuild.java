@@ -5,12 +5,13 @@ import com.rustbuild.client.ClientInit;
 import com.rustbuild.event.ServerEvents;
 import com.rustbuild.item.ModItems;
 import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.fml.loading.FMLEnvironment;
 
 @Mod(RustBuild.MOD_ID)
 public class RustBuild {
@@ -21,8 +22,10 @@ public class RustBuild {
         ModBlocks.BLOCKS.register(bus);
         ModItems.ITEMS.register(bus);
         bus.addListener(this::addCreative);
-        bus.addListener(this::clientSetup);
         MinecraftForge.EVENT_BUS.register(ServerEvents.class);
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            ClientInit.register(bus);
+        }
     }
 
     private void addCreative(BuildCreativeModeTabContentsEvent e) {
@@ -30,9 +33,5 @@ public class RustBuild {
             e.accept(ModItems.BUILDING_PLAN.get());
             e.accept(ModItems.HAMMER.get());
         }
-    }
-
-    private void clientSetup(FMLClientSetupEvent e) {
-        ClientInit.init();
     }
 }

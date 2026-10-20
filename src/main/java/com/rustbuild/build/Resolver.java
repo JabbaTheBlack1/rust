@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -30,9 +31,12 @@ public final class Resolver {
 
     @Nullable
     public static Placement resolve(Level level, Player player, PieceType type) {
-        HitResult hr = player.pick(REACH, 1.0F, false);
-        if (hr.getType() != HitResult.Type.BLOCK) return null;
-        BlockHitResult hit = (BlockHitResult) hr;
+        // Луч по "коллайдерам": трава/цветы игнорируются, попадаем в настоящую землю
+        Vec3 eye = player.getEyePosition(1.0F);
+        Vec3 end = eye.add(player.getViewVector(1.0F).scale(REACH));
+        BlockHitResult hit = level.clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.NONE, player));
+        if (hit.getType() != HitResult.Type.BLOCK) return null;
         BlockPos hp = hit.getBlockPos();
         BlockState hs = level.getBlockState(hp);
         boolean building = hs.getBlock() instanceof BuildingBlock;
@@ -81,8 +85,11 @@ public final class Resolver {
             }
         }
 
+        boolean tooHigh = fill >= MAX_FILL;
+        fill = Math.max(fill, 1);
+
         if (reason == null && !slabFree(level, x0, z0, b)) reason = "blocked";
-        if (reason == null && fill >= MAX_FILL) reason = "no_ground";
+        if (reason == null && tooHigh) reason = "no_ground";
 
         Piece piece = new Piece(PieceType.FOUNDATION, gx, gz, b, Direction.NORTH, Tier.TWIG, fill, Util.NIL_UUID, 0L);
         return new Placement(piece, reason == null, reason);

@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "rustbuild:block/metal_floor",
+    "bottom": "rustbuild:block/metal_floor",
+    "side": "rustbuild:block/metal_wall"
+  }
+}

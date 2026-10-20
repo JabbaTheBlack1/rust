@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "rustbuild:block/armored_floor",
+    "bottom": "rustbuild:block/armored_floor",
+    "side": "rustbuild:block/armored_wall"
+  }
+}

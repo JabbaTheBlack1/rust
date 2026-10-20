@@ -7,6 +7,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,6 +108,49 @@ public record Piece(PieceType type, int gx, int gz, int baseY, Direction dir,
                 }
             }
         }
+        return out;
+    }
+
+    // ---------- Предпросмотр: чистые контуры вместо сетки из сотни блоков ----------
+    private AABB lineBox(double i0, double i1, double h0, double h1) {
+        double x0 = gx * P, z0 = gz * P, y = baseY;
+        if (dir == Direction.NORTH) return new AABB(x0 + i0, y + h0, z0, x0 + i1, y + h1, z0 + 1);
+        return new AABB(x0, y + h0, z0 + i0, x0 + 1, y + h1, z0 + i1);
+    }
+
+    /** Основные контуры элемента. */
+    public List<AABB> previewBoxes() {
+        List<AABB> out = new ArrayList<>();
+        double x0 = gx * P, z0 = gz * P, y = baseY;
+        switch (type) {
+            case FOUNDATION -> {
+                out.add(new AABB(x0, y - fill, z0, x0 + P + 1, y + 1, z0 + P + 1));
+                out.add(new AABB(x0 + 1, y + 1, z0 + 1, x0 + P, y + 1, z0 + P));
+            }
+            case FLOOR -> {
+                out.add(new AABB(x0, y, z0, x0 + P + 1, y + 1, z0 + P + 1));
+                out.add(new AABB(x0 + 1, y + 1, z0 + 1, x0 + P, y + 1, z0 + P));
+            }
+            case WALL, DOORWAY, WINDOW -> out.add(lineBox(0, P + 1, 1, 4));
+            case STAIRS -> {
+                for (int s = 0; s < 4; s++) {
+                    switch (dir) {
+                        case EAST -> out.add(new AABB(x0 + 1 + s, y + 1, z0 + 1, x0 + 2 + s, y + 2 + s, z0 + 5));
+                        case WEST -> out.add(new AABB(x0 + 4 - s, y + 1, z0 + 1, x0 + 5 - s, y + 2 + s, z0 + 5));
+                        case SOUTH -> out.add(new AABB(x0 + 1, y + 1, z0 + 1 + s, x0 + 5, y + 2 + s, z0 + 2 + s));
+                        default -> out.add(new AABB(x0 + 1, y + 1, z0 + 4 - s, x0 + 5, y + 2 + s, z0 + 5 - s));
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Проёмы (рисуются другим цветом). */
+    public List<AABB> previewCutouts() {
+        List<AABB> out = new ArrayList<>();
+        if (type == PieceType.DOORWAY) out.add(lineBox(2, 4, 1, 3));
+        if (type == PieceType.WINDOW) out.add(lineBox(2, 4, 2, 3));
         return out;
     }
 

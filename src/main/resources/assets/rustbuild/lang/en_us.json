@@ -5,7 +5,7 @@
   "item.rustbuild.building_plan.tip2": "Shift+Right-click: next piece",
   "item.rustbuild.hammer.tip1": "Right-click: upgrade piece to selected tier",
   "item.rustbuild.hammer.tip2": "Shift+Right-click: select tier",
-  "item.rustbuild.hammer.tip3": "Left-click: demolish piece",
+  "item.rustbuild.hammer.tip3": "Left-click: demolish the whole piece",
   "piece.rustbuild.foundation": "Foundation",
   "piece.rustbuild.floor": "Floor/Ceiling",
   "piece.rustbuild.wall": "Wall",
@@ -40,5 +40,10 @@
   "block.rustbuild.wood_building_block": "Building Block (wood)",
   "block.rustbuild.stone_building_block": "Building Block (stone)",
   "block.rustbuild.metal_building_block": "Building Block (metal)",
-  "block.rustbuild.armored_building_block": "Building Block (armored)"
+  "block.rustbuild.armored_building_block": "Building Block (armored)",
+  "key.rustbuild.radial": "Building radial menu",
+  "key.categories.rustbuild": "Rust Building",
+  "menu.rustbuild.pieces": "Building piece",
+  "menu.rustbuild.tiers": "Upgrade tier",
+  "item.rustbuild.radial.tip": "Hold R: radial menu"
 }
