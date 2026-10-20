@@ -8,6 +8,9 @@ import com.rustbuild.item.BuildingPlanItem;
 import com.rustbuild.item.HammerItem;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.MenuScreens;
+import com.rustbuild.block.ModMenus;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -28,8 +31,13 @@ public final class ClientInit {
 
     public static void register(IEventBus modBus) {
         modBus.addListener(ClientInit::registerKeys);
+        modBus.addListener(ClientInit::clientSetup);
         MinecraftForge.EVENT_BUS.addListener(PreviewRenderer::onRenderLevel);
         MinecraftForge.EVENT_BUS.addListener(ClientInit::onKey);
+    }
+
+    private static void clientSetup(FMLClientSetupEvent e) {
+        e.enqueueWork(() -> MenuScreens.register(ModMenus.TOOL_CUPBOARD.get(), ToolCupboardScreen::new));
     }
 
     private static void registerKeys(RegisterKeyMappingsEvent e) {

@@ -1,6 +1,8 @@
 package com.rustbuild;
 
+import com.rustbuild.block.ModBlockEntities;
 import com.rustbuild.block.ModBlocks;
+import com.rustbuild.block.ModMenus;
 import com.rustbuild.client.ClientInit;
 import com.rustbuild.event.ServerEvents;
 import com.rustbuild.item.ModItems;
@@ -20,6 +22,8 @@ public class RustBuild {
     public RustBuild(FMLJavaModLoadingContext context) {
         IEventBus bus = context.getModEventBus();
         ModBlocks.BLOCKS.register(bus);
+        ModBlockEntities.TYPES.register(bus);
+        ModMenus.MENUS.register(bus);
         ModItems.ITEMS.register(bus);
         bus.addListener(this::addCreative);
         MinecraftForge.EVENT_BUS.register(ServerEvents.class);
@@ -32,6 +36,7 @@ public class RustBuild {
         if (e.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             e.accept(ModItems.BUILDING_PLAN.get());
             e.accept(ModItems.HAMMER.get());
+            e.accept(ModItems.TOOL_CUPBOARD.get());
         }
     }
 }

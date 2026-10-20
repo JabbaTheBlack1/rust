@@ -16,8 +16,8 @@ import java.util.List;
 public class RadialScreen extends Screen {
     public record Entry(Component name, ResourceLocation icon) {}
 
-    private static final int R_IN = 40;
-    private static final int R_OUT = 112;
+    private int rIn = 40;
+    private int rOut = 112;
     private static final double TWO_PI = Math.PI * 2.0;
 
     private final List<Entry> entries;
@@ -32,6 +32,13 @@ public class RadialScreen extends Screen {
         this.selected = selected;
         this.command = command;
         this.keyCode = keyCode;
+    }
+
+    @Override
+    protected void init() {
+        super.init();
+        rOut = Math.max(90, Math.min(175, height / 2 - 26));
+        rIn = (int) (rOut * (entries.size() > 8 ? 0.45 : 0.36));
     }
 
     @Override
@@ -86,10 +93,10 @@ public class RadialScreen extends Screen {
 
         g.fill(0, 0, width, height, 0x50000000);
 
-        for (int y = -R_OUT; y <= R_OUT; y++) {
-            int xo = (int) Math.floor(Math.sqrt((double) R_OUT * R_OUT - (double) y * y));
-            if (Math.abs(y) < R_IN) {
-                int xi = (int) Math.ceil(Math.sqrt((double) R_IN * R_IN - (double) y * y));
+        for (int y = -rOut; y <= rOut; y++) {
+            int xo = (int) Math.floor(Math.sqrt((double) rOut * rOut - (double) y * y));
+            if (Math.abs(y) < rIn) {
+                int xi = (int) Math.ceil(Math.sqrt((double) rIn * rIn - (double) y * y));
                 span(g, cx, cy, y, -xo, -xi);
                 span(g, cx, cy, y, xi, xo);
             } else {
@@ -97,7 +104,7 @@ public class RadialScreen extends Screen {
             }
         }
 
-        double rMid = (R_IN + R_OUT) / 2.0;
+        double rMid = (rIn + rOut) / 2.0;
         for (int i = 0; i < n; i++) {
             double th = i * TWO_PI / n;
             int ix = (int) Math.round(cx + Math.sin(th) * rMid) - 16;
@@ -107,7 +114,7 @@ public class RadialScreen extends Screen {
 
         Entry shown = entries.get(hover >= 0 ? hover : selected);
         g.drawCenteredString(font, shown.name(), cx, cy - 4, 0xFFFFFFFF);
-        g.drawCenteredString(font, title, cx, cy - R_OUT - 16, 0xFFCD412B);
+        g.drawCenteredString(font, title, cx, cy - rOut - 16, 0xFFCD412B);
     }
 
     private void choose(int index) {

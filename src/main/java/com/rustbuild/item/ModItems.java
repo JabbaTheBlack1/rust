@@ -1,6 +1,8 @@
 package com.rustbuild.item;
 
 import com.rustbuild.RustBuild;
+import com.rustbuild.block.ModBlocks;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -13,6 +15,8 @@ public final class ModItems {
             ITEMS.register("building_plan", () -> new BuildingPlanItem(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> HAMMER =
             ITEMS.register("hammer", () -> new HammerItem(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> TOOL_CUPBOARD =
+            ITEMS.register("tool_cupboard", () -> new BlockItem(ModBlocks.TOOL_CUPBOARD.get(), new Item.Properties()));
 
     private ModItems() {}
 }

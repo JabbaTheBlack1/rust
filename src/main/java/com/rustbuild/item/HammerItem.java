@@ -47,7 +47,7 @@ public class HammerItem extends Item {
                 ItemData.setInt(stack, "tier", next.ordinal());
                 sp.displayClientMessage(Component.translatable("msg.rustbuild.tier_selected", next.displayName()), true);
             } else {
-                BuildActions.upgrade(sp, (ServerLevel) level, REACH, getTier(stack));
+                BuildActions.hammerUse(sp, (ServerLevel) level, REACH, getTier(stack));
                 player.getCooldowns().addCooldown(this, 6);
             }
         }
