@@ -17,6 +17,9 @@ public final class ModBlocks {
     public static final RegistryObject<ToolCupboardBlock> TOOL_CUPBOARD =
             BLOCKS.register("tool_cupboard", () -> new ToolCupboardBlock(ToolCupboardBlock.defaultProperties()));
 
+    public static final RegistryObject<CollisionBlock> COLLISION =
+            BLOCKS.register("collision", () -> new CollisionBlock(CollisionBlock.defaultProperties()));
+
     static {
         for (Tier t : Tier.values()) {
             BY_TIER.put(t, BLOCKS.register(t.id + "_building_block", () -> new BuildingBlock(t)));

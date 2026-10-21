@@ -2,9 +2,13 @@ package com.rustbuild.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import com.rustbuild.build.Piece;
+import com.rustbuild.build.PieceDef;
+import com.rustbuild.build.PieceType;
 import com.rustbuild.build.Placement;
 import com.rustbuild.build.Resolver;
+import com.rustbuild.entity.PieceEntity;
 import com.rustbuild.item.BuildingPlanItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -15,7 +19,10 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 
-/** Контур элемента: зелёный - можно ставить, красный - нельзя, оранжевый - проёмы. */
+import java.util.List;
+import java.util.function.Function;
+
+/** Контур элемента под произвольным углом: зелёный - можно ставить, красный - нельзя, оранжевый - проёмы. */
 public final class PreviewRenderer {
     private PreviewRenderer() {}
 
@@ -27,12 +34,14 @@ public final class PreviewRenderer {
         var stack = player.getMainHandItem();
         if (!(stack.getItem() instanceof BuildingPlanItem)) return;
 
-        Placement p = Resolver.resolve(mc.level, player, BuildingPlanItem.getPiece(stack));
+        PieceType type = BuildingPlanItem.getPiece(stack);
+        Function<AABB, List<Piece>> provider = box ->
+                mc.level.getEntitiesOfClass(PieceEntity.class, box).stream().map(PieceEntity::toView).toList();
+        Placement p = Resolver.resolve(mc.level, player, type, BuildingPlanItem.getRot(stack), provider);
         if (p == null) return;
         Piece piece = p.piece();
 
-        // Поворот камеры уже применён к матрице рендера, поэтому берём ЧИСТЫЙ PoseStack
-        // и сдвигаем координаты относительно камеры.
+        // Поворот камеры уже применён в матрице рендера, поэтому берём чистый PoseStack.
         PoseStack ps = new PoseStack();
         Vec3 cam = event.getCamera().getPosition();
         MultiBufferSource.BufferSource buf = mc.renderBuffers().bufferSource();
@@ -41,14 +50,18 @@ public final class PreviewRenderer {
         float r = p.valid() ? 0.25f : 1.0f;
         float g = p.valid() ? 1.0f : 0.2f;
         float b = p.valid() ? 0.35f : 0.2f;
-        for (AABB box : piece.previewBoxes()) draw(ps, vc, box, cam, r, g, b);
-        for (AABB box : piece.previewCutouts()) draw(ps, vc, box, cam, 1.0f, 0.65f, 0.1f);
+
+        ps.pushPose();
+        ps.translate(piece.x() - cam.x, piece.y() - cam.y, piece.z() - cam.z);
+        ps.mulPose(Axis.YP.rotationDegrees((float) piece.yaw()));
+        for (AABB box : PieceDef.previewBoxes(type, piece.depth())) {
+            LevelRenderer.renderLineBox(ps, vc, box.inflate(0.003), r, g, b, 1.0f);
+        }
+        for (AABB box : PieceDef.previewCutouts(type)) {
+            LevelRenderer.renderLineBox(ps, vc, box.inflate(0.003), 1.0f, 0.65f, 0.1f, 1.0f);
+        }
+        ps.popPose();
 
         buf.endBatch(RenderType.lines());
-    }
-
-    private static void draw(PoseStack ps, VertexConsumer vc, AABB box, Vec3 cam, float r, float g, float b) {
-        AABB bb = box.move(-cam.x, -cam.y, -cam.z).inflate(0.003);
-        LevelRenderer.renderLineBox(ps, vc, bb, r, g, b, 1.0f);
     }
 }

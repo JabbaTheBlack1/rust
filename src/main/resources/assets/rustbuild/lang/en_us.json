@@ -2,7 +2,7 @@
   "item.rustbuild.building_plan": "Building Plan",
   "item.rustbuild.hammer": "Hammer",
   "item.rustbuild.building_plan.tip1": "Right-click: place piece",
-  "item.rustbuild.building_plan.tip2": "Shift+Right-click: next piece",
+  "item.rustbuild.building_plan.tip2": "Shift+Right-click: next piece  |  Z / X: rotate",
   "item.rustbuild.hammer.tip1": "Right-click: upgrade / repair / inspect piece",
   "item.rustbuild.hammer.tip2": "Shift+Right-click: select tier",
   "item.rustbuild.hammer.tip3": "Left-click: demolish the whole piece",
@@ -26,7 +26,7 @@
   "msg.rustbuild.invalid.blocked": "Space is occupied",
   "msg.rustbuild.invalid.unsupported": "No support",
   "msg.rustbuild.invalid.not_foundation": "A foundation must be adjacent",
-  "msg.rustbuild.invalid.no_ground": "Too high above the ground",
+  "msg.rustbuild.invalid.no_ground": "Can't find ground below the foundation (too deep)",
   "msg.rustbuild.need": "Need %s %s",
   "msg.rustbuild.piece_selected": "Piece: %s",
   "msg.rustbuild.tier_selected": "Upgrade tier: %s",
@@ -72,5 +72,11 @@
   "gui.rustbuild.cupboard.authorized": "Authorized:",
   "gui.rustbuild.cupboard.protected": "Protected: %s:%s",
   "gui.rustbuild.cupboard.unprotected": "Not protected",
-  "gui.rustbuild.cupboard.hint": "Storage (wood, stone, iron...)"
+  "gui.rustbuild.cupboard.hint": "Storage (wood, stone, iron...)",
+  "key.rustbuild.rot_left": "Rotate piece left (Shift - fine)",
+  "key.rustbuild.rot_right": "Rotate piece right (Shift - fine)",
+  "msg.rustbuild.rotation": "Rotation: %s°",
+  "msg.rustbuild.invalid.water": "Can't build in water",
+  "block.rustbuild.collision": "Building collision",
+  "entity.rustbuild.piece": "Building piece"
 }
