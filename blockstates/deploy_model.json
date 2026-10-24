@@ -1,0 +1,16 @@
+{
+ "variants": {
+  "kind=tool_cupboard": {
+   "model": "rustbuild:block/deploy/tool_cupboard"
+  },
+  "kind=storage_box": {
+   "model": "rustbuild:block/deploy/storage_box"
+  },
+  "kind=workbench": {
+   "model": "rustbuild:block/deploy/workbench"
+  },
+  "kind=decor": {
+   "model": "rustbuild:block/deploy/decor"
+  }
+ }
+}
