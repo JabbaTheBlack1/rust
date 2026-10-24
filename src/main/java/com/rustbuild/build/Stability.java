@@ -51,7 +51,8 @@ public final class Stability {
 
     public static Map<UUID, Float> compute(List<Piece> comp) {
         Map<UUID, Float> stab = new HashMap<>();
-        for (Piece p : comp) stab.put(p.id(), p.type().isRoot() ? 1f : 0f);
+        Map<UUID, Piece> byId = new HashMap<>();
+        for (Piece p : comp) { stab.put(p.id(), p.type().isRoot() ? 1f : 0f); byId.put(p.id(), p); }
 
         for (int it = 0; it < 48; it++) {
             boolean changed = false;
@@ -65,8 +66,12 @@ public final class Stability {
                     v = Math.min(1f, v);
                 } else {
                     float best = 0f;
-                    for (UUID b : p.base()) best = Math.max(best, stab.getOrDefault(b, 0f));
-                    v = (p.type().isWall() ? 0.92f : 0.95f) * best;
+                    for (UUID b : p.base()) {
+                        Piece bp = byId.get(b);
+                        float f = bp != null && bp.type().isWall() ? 0.86f : (p.type().isWall() ? 0.92f : 0.95f);
+                        best = Math.max(best, stab.getOrDefault(b, 0f) * f);
+                    }
+                    v = best;
                 }
                 if (Math.abs(v - stab.get(p.id())) > 0.0005f) {
                     stab.put(p.id(), v);

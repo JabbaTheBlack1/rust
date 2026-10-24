@@ -27,6 +27,7 @@ public class BuildingData extends SavedData {
     private final Map<UUID, Piece> pieces = new HashMap<>();
     private final Map<Long, Set<UUID>> byChunk = new HashMap<>();
     private final Set<BlockPos> cupboards = new HashSet<>();
+    private final Map<UUID, BlockPos> cupboardEntities = new HashMap<>();
 
     public static BuildingData get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
@@ -40,6 +41,11 @@ public class BuildingData extends SavedData {
             for (int i = 0; i < list.size(); i++) d.index(Piece.load(list.getCompound(i)));
         }
         for (long l : tag.getLongArray("tc")) d.cupboards.add(BlockPos.of(l));
+        ListTag tce = tag.getList("tce", Tag.TAG_COMPOUND);
+        for (int i = 0; i < tce.size(); i++) {
+            CompoundTag c = tce.getCompound(i);
+            d.cupboardEntities.put(c.getUUID("id"), BlockPos.of(c.getLong("pos")));
+        }
         return d;
     }
 
@@ -50,6 +56,14 @@ public class BuildingData extends SavedData {
         for (Piece p : pieces.values()) list.add(p.save());
         tag.put("pieces", list);
         tag.putLongArray("tc", cupboards.stream().mapToLong(BlockPos::asLong).toArray());
+        ListTag tce = new ListTag();
+        for (Map.Entry<UUID, BlockPos> e : cupboardEntities.entrySet()) {
+            CompoundTag c = new CompoundTag();
+            c.putUUID("id", e.getKey());
+            c.putLong("pos", e.getValue().asLong());
+            tce.add(c);
+        }
+        tag.put("tce", tce);
         return tag;
     }
 
@@ -113,6 +127,19 @@ public class BuildingData extends SavedData {
     // ---------------------------------------------------------------- шкафы привилегий
     public void addCupboard(BlockPos pos) { if (cupboards.add(pos.immutable())) setDirty(); }
     public void removeCupboard(BlockPos pos) { if (cupboards.remove(pos)) setDirty(); }
+
+    public void addCupboardEntity(UUID id, BlockPos pos) { cupboardEntities.put(id, pos.immutable()); setDirty(); }
+    public void removeCupboardEntity(UUID id) { if (cupboardEntities.remove(id) != null) setDirty(); }
+
+    public List<UUID> cupboardEntitiesNear(BlockPos pos, int radius) {
+        List<UUID> out = new ArrayList<>();
+        for (Map.Entry<UUID, BlockPos> e : cupboardEntities.entrySet()) {
+            BlockPos c = e.getValue();
+            if (Math.abs(c.getX() - pos.getX()) <= radius && Math.abs(c.getZ() - pos.getZ()) <= radius
+                    && Math.abs(c.getY() - pos.getY()) <= radius * 2) out.add(e.getKey());
+        }
+        return out;
+    }
 
     public List<BlockPos> cupboardsNear(BlockPos pos, int radius) {
         List<BlockPos> out = new ArrayList<>();

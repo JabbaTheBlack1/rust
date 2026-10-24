@@ -1,6 +1,7 @@
 package com.rustbuild.block;
 
 import com.rustbuild.RustBuild;
+import com.rustbuild.deploy.CupboardMenu;
 import net.minecraft.world.flag.FeatureFlags;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -12,6 +13,9 @@ public final class ModMenus {
 
     public static final RegistryObject<MenuType<ToolCupboardMenu>> TOOL_CUPBOARD =
             MENUS.register("tool_cupboard", () -> new MenuType<>(ToolCupboardMenu::new, FeatureFlags.DEFAULT_FLAGS));
+
+    public static final RegistryObject<MenuType<CupboardMenu>> CUPBOARD =
+            MENUS.register("cupboard", () -> new MenuType<>(CupboardMenu::new, FeatureFlags.DEFAULT_FLAGS));
 
     private ModMenus() {}
 }

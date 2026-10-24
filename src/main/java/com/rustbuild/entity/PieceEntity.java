@@ -69,6 +69,7 @@ public class PieceEntity extends Entity {
     @Override
     protected void addAdditionalSaveData(CompoundTag t) {
         t.putInt("type", entityData.get(TYPE));
+        t.putString("typeId", pieceType().id);          // стабильный идентификатор для внешних модов (rustdoors)
         t.putInt("tier", entityData.get(TIER));
         t.putFloat("depth", entityData.get(DEPTH));
         t.putFloat("yaw", entityData.get(YAW));

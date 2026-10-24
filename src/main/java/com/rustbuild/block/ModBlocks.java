@@ -17,6 +17,8 @@ public final class ModBlocks {
     public static final RegistryObject<ToolCupboardBlock> TOOL_CUPBOARD =
             BLOCKS.register("tool_cupboard", () -> new ToolCupboardBlock(ToolCupboardBlock.defaultProperties()));
 
+    public static final RegistryObject<DeployModelBlock> DEPLOY_MODEL =
+            BLOCKS.register("deploy_model", DeployModelBlock::new);
     public static final RegistryObject<CollisionBlock> COLLISION =
             BLOCKS.register("collision", () -> new CollisionBlock(CollisionBlock.defaultProperties()));
 

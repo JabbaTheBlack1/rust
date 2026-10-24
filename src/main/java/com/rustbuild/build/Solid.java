@@ -62,6 +62,26 @@ public final class Solid {
         return true;
     }
 
+    /** Как clip, но возвращает {t, nx, ny, nz} (нормаль грани входа) или null. */
+    public double[] clipNormal(double ox, double oy, double oz, double dx, double dy, double dz) {
+        double tIn = Double.NEGATIVE_INFINITY, tOut = Double.POSITIVE_INFINITY;
+        double[] n = null;
+        for (double[] p : planes) {
+            double denom = p[0] * dx + p[1] * dy + p[2] * dz;
+            double num = p[3] - (p[0] * ox + p[1] * oy + p[2] * oz);
+            if (Math.abs(denom) < 1e-9) {
+                if (num < 0) return null;
+                continue;
+            }
+            double t = num / denom;
+            if (denom > 0) tOut = Math.min(tOut, t);
+            else if (t > tIn) { tIn = t; n = p; }
+        }
+        if (tIn > tOut || tOut < 0) return null;
+        if (n == null) return new double[]{0, 0, 1, 0};
+        return new double[]{Math.max(tIn, 0.0), n[0], n[1], n[2]};
+    }
+
     /** Расстояние вдоль луча до входа в тело или NaN. */
     public double clip(double ox, double oy, double oz, double dx, double dy, double dz) {
         double tIn = Double.NEGATIVE_INFINITY, tOut = Double.POSITIVE_INFINITY;

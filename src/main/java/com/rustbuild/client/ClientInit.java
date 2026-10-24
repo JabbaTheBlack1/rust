@@ -8,6 +8,7 @@ import com.rustbuild.build.PieceType;
 import com.rustbuild.build.Tier;
 import com.rustbuild.entity.ModEntities;
 import com.rustbuild.item.BuildingPlanItem;
+import com.rustbuild.item.DeployableItem;
 import com.rustbuild.item.HammerItem;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -36,6 +37,9 @@ public final class ClientInit {
     public static final KeyMapping ROT_RIGHT =
             new KeyMapping("key.rustbuild.rot_right", GLFW.GLFW_KEY_X, "key.categories.rustbuild");
 
+    public static final KeyMapping PLACE_KEY =
+            new KeyMapping("key.rustbuild.place", GLFW.GLFW_KEY_V, "key.categories.rustbuild");
+
     private ClientInit() {}
 
     public static void register(IEventBus modBus) {
@@ -48,17 +52,22 @@ public final class ClientInit {
     }
 
     private static void clientSetup(FMLClientSetupEvent e) {
-        e.enqueueWork(() -> MenuScreens.register(ModMenus.TOOL_CUPBOARD.get(), ToolCupboardScreen::new));
+        e.enqueueWork(() -> {
+            MenuScreens.register(ModMenus.TOOL_CUPBOARD.get(), ToolCupboardScreen::new);
+            MenuScreens.register(ModMenus.CUPBOARD.get(), CupboardScreen::new);
+        });
     }
 
     private static void registerKeys(RegisterKeyMappingsEvent e) {
         e.register(RADIAL_KEY);
         e.register(ROT_LEFT);
         e.register(ROT_RIGHT);
+        e.register(PLACE_KEY);
     }
 
     private static void registerRenderers(EntityRenderersEvent.RegisterRenderers e) {
         e.registerEntityRenderer(ModEntities.PIECE.get(), PieceRenderer::new);
+        e.registerEntityRenderer(ModEntities.DEPLOYABLE.get(), DeployRenderer::new);
     }
 
     /** Невидимые блоки-коллайдеры не должны обводиться чёрной рамкой. */
@@ -81,9 +90,17 @@ public final class ClientInit {
         // поворот элемента (свободный угол): Z / X, с Shift - по 1 градусу, иначе по 5
         boolean left = ROT_LEFT.matches(e.getKey(), e.getScanCode());
         boolean right = ROT_RIGHT.matches(e.getKey(), e.getScanCode());
-        if ((left || right) && stack.getItem() instanceof BuildingPlanItem) {
+        if ((left || right) && (stack.getItem() instanceof BuildingPlanItem || stack.getItem() instanceof DeployableItem)) {
             int step = Screen.hasShiftDown() ? 1 : 5;
             mc.player.connection.sendCommand("rustbuild rot " + (left ? -step : step));
+            return;
+        }
+
+        // V: поставить предмет из руки свободно (любой блок или предмет) в точку прицела
+        if (PLACE_KEY.matches(e.getKey(), e.getScanCode())) {
+            if (!stack.isEmpty() && !(stack.getItem() instanceof BuildingPlanItem) && !(stack.getItem() instanceof HammerItem)) {
+                mc.player.connection.sendCommand("rustbuild place");
+            }
             return;
         }
 
