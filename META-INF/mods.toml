@@ -1,0 +1,23 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="MIT"
+
+[[mods]]
+modId="rustbuild"
+version="1.0.0"
+displayName="Rust Building"
+description='''Система строительства из Rust: сетка, фундаменты, стены, дверные проёмы, окна, лестницы, тиры материалов и молоток.'''
+
+[[dependencies.rustbuild]]
+modId="forge"
+mandatory=true
+versionRange="[52,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.rustbuild]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.21.1,1.22)"
+ordering="NONE"
+side="BOTH"
