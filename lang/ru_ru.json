@@ -78,5 +78,18 @@
   "msg.rustbuild.rotation": "Поворот: %s°",
   "msg.rustbuild.invalid.water": "Нельзя строить в воде",
   "block.rustbuild.collision": "Коллизия постройки",
-  "entity.rustbuild.piece": "Элемент постройки"
+  "entity.rustbuild.piece": "Элемент постройки",
+  "deploy.rustbuild.tool_cupboard": "Шкаф привилегий",
+  "deploy.rustbuild.storage_box": "Ящик",
+  "deploy.rustbuild.workbench": "Верстак",
+  "deploy.rustbuild.decor": "Предмет",
+  "item.rustbuild.storage_box": "Большой ящик",
+  "item.rustbuild.workbench": "Верстак",
+  "item.rustbuild.deployable.tip1": "ПКМ: поставить в точку прицела (на землю, пол, фундамент)",
+  "item.rustbuild.deployable.tip2": "Z / X: повернуть на любой угол  |  Shift+ПКМ пустой рукой: забрать",
+  "key.rustbuild.place": "Поставить предмет из руки свободно (любой блок/предмет)",
+  "msg.rustbuild.aim_floor": "Нацельтесь на горизонтальную поверхность",
+  "msg.rustbuild.invalid.too_high": "Слишком высоко без опоры (максимум 3 стены, дальше нужен пол)",
+  "block.rustbuild.deploy_model": "Модель предмета",
+  "entity.rustbuild.deployable": "Свободный предмет"
 }

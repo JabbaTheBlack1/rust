@@ -1,0 +1,3 @@
+{
+ "parent": "rustbuild:block/deploy/storage_box"
+}

@@ -2,8 +2,8 @@
  "ambientocclusion": false,
  "textures": {
   "panel": "rustbuild:block/armored_panel",
-  "floor": "rustbuild:block/armored_floor",
   "beam": "rustbuild:block/armored_beam",
+  "floor": "rustbuild:block/armored_floor",
   "particle": "rustbuild:block/armored_panel"
  },
  "elements": [

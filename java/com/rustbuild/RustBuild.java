@@ -39,6 +39,8 @@ public class RustBuild {
             e.accept(ModItems.BUILDING_PLAN.get());
             e.accept(ModItems.HAMMER.get());
             e.accept(ModItems.TOOL_CUPBOARD.get());
+            e.accept(ModItems.STORAGE_BOX.get());
+            e.accept(ModItems.WORKBENCH.get());
         }
     }
 }

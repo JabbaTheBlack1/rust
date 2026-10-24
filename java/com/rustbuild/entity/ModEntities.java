@@ -1,6 +1,7 @@
 package com.rustbuild.entity;
 
 import com.rustbuild.RustBuild;
+import com.rustbuild.deploy.DeployableEntity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraftforge.registries.DeferredRegister;
@@ -18,6 +19,14 @@ public final class ModEntities {
                     .updateInterval(Integer.MAX_VALUE)
                     .fireImmune()
                     .build("piece"));
+
+    public static final RegistryObject<EntityType<DeployableEntity>> DEPLOYABLE = ENTITY_TYPES.register("deployable", () ->
+            EntityType.Builder.<DeployableEntity>of(DeployableEntity::new, MobCategory.MISC)
+                    .sized(0.5f, 0.5f)
+                    .clientTrackingRange(10)
+                    .updateInterval(Integer.MAX_VALUE)
+                    .fireImmune()
+                    .build("deployable"));
 
     private ModEntities() {}
 }

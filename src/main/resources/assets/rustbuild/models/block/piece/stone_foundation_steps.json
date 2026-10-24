@@ -1,0 +1,79 @@
+{
+ "ambientocclusion": false,
+ "textures": {
+  "panel": "rustbuild:block/stone_panel",
+  "floor": "rustbuild:block/stone_floor",
+  "beam": "rustbuild:block/stone_beam",
+  "particle": "rustbuild:block/stone_panel"
+ },
+ "elements": [
+  {
+   "from": [
+    -2.6667,
+    -8.0,
+    8.0
+   ],
+   "to": [
+    18.6667,
+    -2.6667,
+    14.4
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      16.0
+     ],
+     "texture": "#panel"
+    },
+    "south": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      16.0
+     ],
+     "texture": "#panel"
+    },
+    "east": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      16.0
+     ],
+     "texture": "#panel"
+    },
+    "west": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      16.0
+     ],
+     "texture": "#panel"
+    },
+    "up": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      16.0
+     ],
+     "texture": "#floor"
+    },
+    "down": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      16.0
+     ],
+     "texture": "#panel"
+    }
+   }
+  }
+ ]
+}

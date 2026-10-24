@@ -78,5 +78,18 @@
   "msg.rustbuild.rotation": "Rotation: %s°",
   "msg.rustbuild.invalid.water": "Can't build in water",
   "block.rustbuild.collision": "Building collision",
-  "entity.rustbuild.piece": "Building piece"
+  "entity.rustbuild.piece": "Building piece",
+  "deploy.rustbuild.tool_cupboard": "Tool Cupboard",
+  "deploy.rustbuild.storage_box": "Storage Box",
+  "deploy.rustbuild.workbench": "Workbench",
+  "deploy.rustbuild.decor": "Object",
+  "item.rustbuild.storage_box": "Large Box",
+  "item.rustbuild.workbench": "Workbench",
+  "item.rustbuild.deployable.tip1": "Right-click: place at the aim point (ground, floor, foundation)",
+  "item.rustbuild.deployable.tip2": "Z / X: rotate to any angle  |  Shift+Right-click empty hand: pick up",
+  "key.rustbuild.place": "Place held item freely (any block/item)",
+  "msg.rustbuild.aim_floor": "Aim at a horizontal surface",
+  "msg.rustbuild.invalid.too_high": "Too high without support (max 3 walls, then a floor is needed)",
+  "block.rustbuild.deploy_model": "Object model",
+  "entity.rustbuild.deployable": "Free object"
 }

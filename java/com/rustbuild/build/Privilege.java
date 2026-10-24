@@ -1,6 +1,9 @@
 package com.rustbuild.build;
 
 import com.rustbuild.block.ToolCupboardBlockEntity;
+import com.rustbuild.deploy.DeployableEntity;
+import net.minecraft.world.entity.Entity;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
@@ -25,6 +28,13 @@ public final class Privilege {
                 if (t.isAuthorized(p.getUUID())) return true;
             }
         }
+        for (UUID id : BuildingData.get(level).cupboardEntitiesNear(pos, RADIUS)) {
+            Entity e = level.getEntity(id);
+            if (e instanceof DeployableEntity d) {
+                any = true;
+                if (d.isAuthorized(p.getUUID())) return true;
+            }
+        }
         return !any;
     }
 
@@ -39,6 +49,11 @@ public final class Privilege {
             if (!level.isLoaded(tc)) return true;
             BlockEntity be = level.getBlockEntity(tc);
             if (be instanceof ToolCupboardBlockEntity t && t.isActive()) return true;
+        }
+        for (UUID id : BuildingData.get(level).cupboardEntitiesNear(pos, RADIUS)) {
+            Entity e = level.getEntity(id);
+            if (e == null) return true;
+            if (e instanceof DeployableEntity d && d.isActive()) return true;
         }
         return false;
     }

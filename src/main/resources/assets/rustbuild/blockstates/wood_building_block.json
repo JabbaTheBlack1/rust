@@ -1,13 +1,49 @@
 {
-  "variants": {
-    "kind=floor": {
-      "model": "rustbuild:block/wood_building_block_floor"
-    },
-    "kind=wall": {
-      "model": "rustbuild:block/wood_building_block"
-    },
-    "kind=fill": {
-      "model": "rustbuild:block/wood_building_block"
-    }
+ "variants": {
+  "piece=foundation": {
+   "model": "rustbuild:block/piece/wood_foundation"
+  },
+  "piece=triangle_foundation": {
+   "model": "rustbuild:block/piece/wood_triangle_foundation"
+  },
+  "piece=foundation_steps": {
+   "model": "rustbuild:block/piece/wood_foundation_steps"
+  },
+  "piece=floor": {
+   "model": "rustbuild:block/piece/wood_floor"
+  },
+  "piece=triangle_floor": {
+   "model": "rustbuild:block/piece/wood_triangle_floor"
+  },
+  "piece=floor_frame": {
+   "model": "rustbuild:block/piece/wood_floor_frame"
+  },
+  "piece=wall": {
+   "model": "rustbuild:block/piece/wood_wall"
+  },
+  "piece=doorway": {
+   "model": "rustbuild:block/piece/wood_doorway"
+  },
+  "piece=window": {
+   "model": "rustbuild:block/piece/wood_window"
+  },
+  "piece=low_wall": {
+   "model": "rustbuild:block/piece/wood_low_wall"
+  },
+  "piece=roof": {
+   "model": "rustbuild:block/piece/wood_roof"
+  },
+  "piece=triangle_roof": {
+   "model": "rustbuild:block/piece/wood_triangle_roof"
+  },
+  "piece=stairs": {
+   "model": "rustbuild:block/piece/wood_stairs"
+  },
+  "piece=l_stairs": {
+   "model": "rustbuild:block/piece/wood_l_stairs"
+  },
+  "piece=u_stairs": {
+   "model": "rustbuild:block/piece/wood_u_stairs"
   }
+ }
 }

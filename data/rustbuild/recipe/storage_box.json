@@ -1,0 +1,18 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "misc",
+ "pattern": [
+  "PPP",
+  "P P",
+  "PPP"
+ ],
+ "key": {
+  "P": {
+   "tag": "minecraft:planks"
+  }
+ },
+ "result": {
+  "id": "rustbuild:storage_box",
+  "count": 1
+ }
+}
