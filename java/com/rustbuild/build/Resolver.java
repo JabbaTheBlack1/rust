@@ -26,6 +26,8 @@ import java.util.function.Function;
 public final class Resolver {
     private static final double REACH = 10.0;
     private static final double SNAP_DIST = 4.2;
+    /** Больше стен друг на друге без пола между ними ставить нельзя. */
+    private static final int MAX_STACK = 3;
 
     private Resolver() {}
 
@@ -92,7 +94,9 @@ public final class Resolver {
                     if (s.kind() == Socket.Kind.WALL_TOP) p = alignSlab(type, s, Socket.Kind.EDGE_BOTTOM);
                 }
                 case WALL -> {
-                    if (s.kind() == Socket.Kind.EDGE_TOP && q.type().isSlab()) {
+                    if (s.kind() == Socket.Kind.WALL_TOP && q.type().isWall()) {
+                        p = Piece.blank(type, s.pos().x, s.pos().y, s.pos().z, s.dir(), 0f);
+                    } else if (s.kind() == Socket.Kind.EDGE_TOP && q.type().isSlab()) {
                         p = Piece.blank(type, s.pos().x, s.pos().y, s.pos().z, s.dir(), 0f);
                     }
                 }
@@ -146,6 +150,7 @@ public final class Resolver {
     @Nullable
     private static String check(Level level, Piece p, List<Piece> near) {
         boolean foundation = p.type().isRoot();
+        if (p.type().isWall() && stackBelow(p, near) >= MAX_STACK) return "too_high";
         List<Vec3> samples = samples(p, foundation);
 
         for (Piece q : near) {
@@ -172,6 +177,26 @@ public final class Resolver {
             if (!sh.isEmpty() && sh.bounds().move(bp).contains(w)) return "blocked";
         }
         return null;
+    }
+
+    /** Сколько стен уже стоит друг на друге прямо под этим элементом (цепочка по верхам стен). */
+    private static int stackBelow(Piece p, List<Piece> near) {
+        int count = 0;
+        Vec3 base = p.pos();
+        for (int guard = 0; guard < 8; guard++) {
+            Piece below = null;
+            for (Piece q : near) {
+                if (!q.type().isWall() || q.type().isLowWall()) continue;
+                for (Piece.WorldSocket s : q.worldSockets()) {
+                    if (s.kind() == Socket.Kind.WALL_TOP && s.pos().distanceTo(base) < 0.15) { below = q; break; }
+                }
+                if (below != null) break;
+            }
+            if (below == null) return count;
+            count++;
+            base = below.pos();
+        }
+        return count;
     }
 
     /** Точки внутри тела элемента (мировые) для проверок пересечений. */

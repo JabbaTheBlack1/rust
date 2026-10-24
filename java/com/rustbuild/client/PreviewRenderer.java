@@ -9,7 +9,10 @@ import com.rustbuild.build.PieceType;
 import com.rustbuild.build.Placement;
 import com.rustbuild.build.Resolver;
 import com.rustbuild.entity.PieceEntity;
+import com.rustbuild.deploy.DeployResolver;
 import com.rustbuild.item.BuildingPlanItem;
+import com.rustbuild.item.DeployableItem;
+import com.rustbuild.build.Solid;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.LevelRenderer;
@@ -26,12 +29,36 @@ import java.util.function.Function;
 public final class PreviewRenderer {
     private PreviewRenderer() {}
 
+    private static void drawDeployable(RenderLevelStageEvent event, Minecraft mc, LocalPlayer player, DeployableItem di,
+                                       net.minecraft.world.item.ItemStack stack) {
+        Function<AABB, List<Piece>> provider = box ->
+                mc.level.getEntitiesOfClass(PieceEntity.class, box).stream().map(PieceEntity::toView).toList();
+        DeployResolver.Placed p = DeployResolver.resolve(mc.level, player, di.kind, net.minecraft.world.item.ItemStack.EMPTY,
+                DeployableItem.getRot(stack), provider);
+        if (p == null) return;
+        PoseStack ps = new PoseStack();
+        Vec3 cam = event.getCamera().getPosition();
+        MultiBufferSource.BufferSource buf = mc.renderBuffers().bufferSource();
+        VertexConsumer vc = buf.getBuffer(RenderType.lines());
+        float r = p.valid() ? 0.25f : 1.0f, g = p.valid() ? 1.0f : 0.2f, b = p.valid() ? 0.35f : 0.2f;
+        ps.pushPose();
+        ps.translate(p.xf().x() - cam.x, p.xf().y() - cam.y, p.xf().z() - cam.z);
+        ps.mulPose(Axis.YP.rotationDegrees((float) p.xf().yaw()));
+        for (Solid s : p.solids()) LevelRenderer.renderLineBox(ps, vc, s.bounds().inflate(0.003), r, g, b, 1.0f);
+        ps.popPose();
+        buf.endBatch(RenderType.lines());
+    }
+
     public static void onRenderLevel(RenderLevelStageEvent event) {
         if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) return;
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         if (player == null || mc.level == null) return;
         var stack = player.getMainHandItem();
+        if (stack.getItem() instanceof DeployableItem di) {
+            drawDeployable(event, mc, player, di, stack);
+            return;
+        }
         if (!(stack.getItem() instanceof BuildingPlanItem)) return;
 
         PieceType type = BuildingPlanItem.getPiece(stack);

@@ -1,6 +1,7 @@
 package com.rustbuild.item;
 
 import com.rustbuild.build.BuildActions;
+import com.rustbuild.build.BuildingData;
 import com.rustbuild.build.PieceType;
 import com.rustbuild.build.Placement;
 import com.rustbuild.build.Resolver;
@@ -26,6 +27,9 @@ public class BuildingPlanItem extends Item {
         return PieceType.byIndex(ItemData.tag(s).getInt("piece"));
     }
 
+    /** Дополнительный угол поворота первого фундамента (градусы). */
+    public static int getRot(ItemStack s) { return ItemData.getInt(s, "rot", 0); }
+
     @Override
     public Component getName(ItemStack stack) {
         return super.getName(stack).copy()
@@ -43,7 +47,8 @@ public class BuildingPlanItem extends Item {
                 ItemData.setInt(stack, "piece", next.ordinal());
                 sp.displayClientMessage(Component.translatable("msg.rustbuild.piece_selected", next.displayName()), true);
             } else {
-                Placement pl = Resolver.resolve(level, player, getPiece(stack));
+                BuildingData data = BuildingData.get((ServerLevel) level);
+                Placement pl = Resolver.resolve(level, player, getPiece(stack), getRot(stack), box -> data.inBox(box));
                 if (pl == null) {
                     sp.displayClientMessage(Component.translatable("msg.rustbuild.aim"), true);
                 } else if (!pl.valid()) {

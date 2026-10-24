@@ -12,6 +12,11 @@ public final class ItemData {
         return s.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
     }
 
+    public static int getInt(ItemStack s, String key, int def) {
+        CompoundTag t = tag(s);
+        return t.contains(key) ? t.getInt(key) : def;
+    }
+
     public static void setInt(ItemStack s, String key, int value) {
         CustomData.update(DataComponents.CUSTOM_DATA, s, t -> t.putInt(key, value));
     }

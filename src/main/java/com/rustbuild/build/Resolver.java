@@ -1,357 +1,250 @@
 package com.rustbuild.build;
 
-import com.rustbuild.block.BuildingBlock;
-import com.rustbuild.block.BuildingBlock.Kind;
+import com.rustbuild.block.CollisionBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.SlabBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
- * Определяет, ЧТО и КУДА будет поставлено при прицеливании.
- * Работает только по блокам мира, поэтому одинаково считается на клиенте (контур) и на сервере.
+ * Определяет, ЧТО и КУДА будет поставлено. Как в Rust:
+ *  - первый фундамент ставится свободно в точке прицела, под любым углом;
+ *  - всё остальное притягивается к сокетам (краям, верхам стен, клеткам) уже стоящих элементов.
+ * Считается одинаково на клиенте (контур) и на сервере (постановка); элементы берутся из provider.
  */
 public final class Resolver {
     private static final double REACH = 10.0;
-    private static final int MAX_FILL = 16;
-    private static final int NONE = Integer.MIN_VALUE;
-    private static final int P = Piece.P;
-    /** Четыре внутренних точки клетки: по ним определяем, есть ли в клетке плита (даже треугольная/с отверстием). */
-    private static final int[][] CORNERS = {{1, 1}, {4, 1}, {1, 4}, {4, 4}};
+    private static final double SNAP_DIST = 4.2;
 
     private Resolver() {}
 
+    private record Cand(Piece piece, double score) {}
+
     @Nullable
-    public static Placement resolve(Level level, Player player, PieceType type) {
+    public static Placement resolve(Level level, Player player, PieceType type, int rotDeg,
+                                    Function<AABB, List<Piece>> provider) {
         Vec3 eye = player.getEyePosition(1.0F);
-        Vec3 end = eye.add(player.getViewVector(1.0F).scale(REACH));
-        BlockHitResult hit = level.clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER,
-                ClipContext.Fluid.NONE, player));
-        if (hit.getType() != HitResult.Type.BLOCK) return null;
-        BlockPos hp = hit.getBlockPos();
-        BlockState hs = level.getBlockState(hp);
-        boolean building = hs.getBlock() instanceof BuildingBlock;
-        int floorY = building ? findFloorY(level, hp, hs) : NONE;
+        Vec3 look = player.getViewVector(1.0F);
+        Vec3 end = eye.add(look.scale(REACH));
 
-        return switch (type.family) {
-            case FOUNDATION -> foundation(level, hit, hs, floorY, type);
-            case FLOOR, ROOF -> floorLike(level, player, hit, hs, floorY, type);
-            case WALL -> wall(level, hit, type, floorY);
-            case STAIRS -> stairs(level, player, hit, floorY, type);
-            case STEPS -> steps(level, hit, floorY, type);
-        };
-    }
+        PieceRaycast.Hit ph = PieceRaycast.pick(provider.apply(new AABB(eye, end).inflate(4.0)), eye, look, REACH);
+        BlockHitResult th = terrainRay(level, eye, end);
+        if (ph == null && th == null) return null;
 
-    // ------------------------------------------------------------------ FOUNDATION / TRIANGLE_FOUNDATION
-    @Nullable
-    private static Placement foundation(Level level, BlockHitResult hit, BlockState hs, int floorY, PieceType type) {
-        BlockPos hp = hit.getBlockPos();
-        Vec3 loc = hit.getLocation();
-        int gx, gz, b;
-        String reason = null;
-        Direction attach = null;
-        int[] a = null;
-
-        if (hs.getBlock() instanceof BuildingBlock) {
-            if (floorY == NONE) return null;
-            a = anchor(level, hp, floorY);
-            if (a == null) return null;
-            if (!hasFill(level, a[0], a[1], floorY)) reason = "not_foundation";
-            attach = side(loc, a[0], a[1]);
-            gx = a[0] + attach.getStepX();
-            gz = a[1] + attach.getStepZ();
-            b = floorY;
+        double dt = th == null ? Double.MAX_VALUE : th.getLocation().distanceTo(eye);
+        double dp = ph == null ? Double.MAX_VALUE : ph.dist();
+        Vec3 aim;
+        boolean terrainUp = false;
+        if (dp < dt) {
+            aim = ph.point();
         } else {
-            if (hit.getDirection() != Direction.UP) return null;
-            gx = Math.floorDiv(hp.getX(), P);
-            gz = Math.floorDiv(hp.getZ(), P);
-            b = hp.getY() + 1;
-            int snap = snapY(level, gx, gz, b);
-            if (snap != NONE) b = snap;
+            aim = th.getLocation();
+            terrainUp = th.getDirection() == Direction.UP;
         }
 
-        Direction dir = type.isTriangle() ? triCorner(loc, gx, gz, attach, a) : Direction.NORTH;
-        Piece tmp = Piece.blank(type, gx, gz, b, dir, 0);
+        List<Piece> near = provider.apply(new AABB(aim, aim).inflate(8.0));
 
-        // Опора: заполняем пространство под фундаментом до земли
-        int x0 = gx * P, z0 = gz * P, fill = 0;
-        for (int[] q : tmp.slabPositions()) {
-            int d = 0;
-            while (d < MAX_FILL && level.getBlockState(new BlockPos(x0 + q[0], b - 1 - d, z0 + q[1])).canBeReplaced()) d++;
-            fill = Math.max(fill, d);
-        }
-        boolean tooHigh = fill >= MAX_FILL;
-        fill = Math.max(fill, 1);
-        Piece piece = tmp.withFill(fill);
-
-        if (reason == null && !slabFree(level, piece)) reason = "blocked";
-        if (reason == null && tooHigh) reason = "no_ground";
-        return new Placement(piece, reason == null, reason);
-    }
-
-    // ------------------------------------------------------------------ FLOOR* / ROOF*
-    @Nullable
-    private static Placement floorLike(Level level, Player pl, BlockHitResult hit, BlockState hs, int floorY, PieceType type) {
-        if (!(hs.getBlock() instanceof BuildingBlock) || floorY == NONE) return null;
-        BlockPos hp = hit.getBlockPos();
-        Vec3 loc = hit.getLocation();
-        boolean roof = type.family == PieceType.Family.ROOF;
-        int gx, gz, b;
-        Direction attach = null;
-        int[] a = null;
-
-        if (isKind(hs, Kind.WALL)) {
-            // целимся в верх стены -> плита следующего этажа
-            gx = cellAxis(hp.getX(), pl.getX());
-            gz = cellAxis(hp.getZ(), pl.getZ());
-            b = floorY + Piece.LEVEL_HEIGHT;
-        } else {
-            if (roof) return null;
-            a = anchor(level, hp, floorY);
-            if (a == null) return null;
-            attach = side(loc, a[0], a[1]);
-            gx = a[0] + attach.getStepX();
-            gz = a[1] + attach.getStepZ();
-            b = floorY;
-        }
-
-        Direction dir;
-        if (type.isTriangle()) dir = triCorner(loc, gx, gz, attach, a);
-        else if (roof) dir = pl.getDirection();
-        else dir = Direction.NORTH;
-
-        Piece piece = Piece.blank(type, gx, gz, b, dir, 0);
-        String reason = null;
-        if (roof ? !roofFree(level, piece) : !slabFree(level, piece)) reason = "blocked";
-        else if (!supported(level, piece)) reason = "unsupported";
-        return new Placement(piece, reason == null, reason);
-    }
-
-    // ------------------------------------------------------------------ WALL / DOORWAY / WINDOW / LOW_WALL
-    @Nullable
-    private static Placement wall(Level level, BlockHitResult hit, PieceType type, int floorY) {
-        if (floorY == NONE) return null;
-        int[] a = anchor(level, hit.getBlockPos(), floorY);
-        if (a == null) return null;
-
-        Direction d = side(hit.getLocation(), a[0], a[1]);
-        int gx = a[0], gz = a[1];
-        Direction dir;
-        if (d == Direction.NORTH) dir = Direction.NORTH;
-        else if (d == Direction.WEST) dir = Direction.WEST;
-        else if (d == Direction.SOUTH) { gz++; dir = Direction.NORTH; }
-        else { gx++; dir = Direction.WEST; }
-
-        int x0 = gx * P, z0 = gz * P;
-        boolean alongX = dir == Direction.NORTH;
-        int maxH = type.isLowWall() ? 1 : 3;
-        String reason = null;
-        outer:
-        for (int i = 0; i <= P; i++) {
-            BlockPos base = alongX ? new BlockPos(x0 + i, floorY, z0) : new BlockPos(x0, floorY, z0 + i);
-            if (!isKind(level.getBlockState(base), Kind.FLOOR)) { reason = "unsupported"; break; }
-            for (int h = 1; h <= maxH; h++) {
-                BlockState st = level.getBlockState(base.above(h));
-                boolean endPost = i == 0 || i == P;
-                boolean ok = st.canBeReplaced() || (endPost && isKind(st, Kind.WALL));
-                if (!ok) { reason = "blocked"; break outer; }
+        Cand best = null;
+        for (Piece q : near) {
+            for (Cand c : candidates(type, q, look, aim)) {
+                if (best == null || c.score() < best.score()) best = c;
             }
         }
-        Piece piece = Piece.blank(type, gx, gz, floorY, dir, 0);
-        return new Placement(piece, reason == null, reason);
+
+        Piece piece;
+        if (best != null && best.score() <= SNAP_DIST) {
+            piece = best.piece();
+        } else if (type.family == PieceType.Family.FOUNDATION && terrainUp) {
+            double top = Math.round((aim.y + 0.5) * 4.0) / 4.0;
+            double yaw = Math.round(-player.getYRot() + rotDeg);
+            piece = Piece.blank(type, aim.x, top, aim.z, yaw, 0.5f);
+        } else {
+            return null;
+        }
+        return finish(level, piece, near);
     }
 
-    // ------------------------------------------------------------------ STAIRS / L / U / SPIRAL
-    @Nullable
-    private static Placement stairs(Level level, Player pl, BlockHitResult hit, int floorY, PieceType type) {
-        if (floorY == NONE) return null;
-        int[] a = anchor(level, hit.getBlockPos(), floorY);
-        if (a == null) return null;
-
-        Direction dir = pl.getDirection();
-        int x0 = a[0] * P, z0 = a[1] * P;
-        String reason = null;
-        outer:
-        for (int x = x0 + 1; x <= x0 + 4; x++) {
-            for (int z = z0 + 1; z <= z0 + 4; z++) {
-                if (!isKind(level.getBlockState(new BlockPos(x, floorY, z)), Kind.FLOOR)) { reason = "unsupported"; break outer; }
-                for (int y = floorY + 1; y <= floorY + Piece.LEVEL_HEIGHT; y++) {
-                    if (!level.getBlockState(new BlockPos(x, y, z)).canBeReplaced()) { reason = "blocked"; break outer; }
+    // ------------------------------------------------------------------ кандидаты
+    private static List<Cand> candidates(PieceType type, Piece q, Vec3 look, Vec3 aim) {
+        List<Cand> out = new ArrayList<>();
+        for (Piece.WorldSocket s : q.worldSockets()) {
+            Piece p = null;
+            switch (type.family) {
+                case FOUNDATION -> {
+                    if (s.kind() == Socket.Kind.EDGE_TOP && q.type().isRoot()) p = alignSlab(type, s, Socket.Kind.EDGE_TOP);
+                }
+                case FLOOR -> {
+                    if (s.kind() == Socket.Kind.WALL_TOP) p = alignSlab(type, s, Socket.Kind.EDGE_BOTTOM);
+                    else if (s.kind() == Socket.Kind.EDGE_TOP && q.type().isSlab()) p = alignSlab(type, s, Socket.Kind.EDGE_TOP);
+                }
+                case ROOF -> {
+                    if (s.kind() == Socket.Kind.WALL_TOP) p = alignSlab(type, s, Socket.Kind.EDGE_BOTTOM);
+                }
+                case WALL -> {
+                    if (s.kind() == Socket.Kind.EDGE_TOP && q.type().isSlab()) {
+                        p = Piece.blank(type, s.pos().x, s.pos().y, s.pos().z, s.dir(), 0f);
+                    }
+                }
+                case STEPS -> {
+                    if (s.kind() == Socket.Kind.EDGE_TOP && q.type().isRoot()) {
+                        p = Piece.blank(type, s.pos().x, s.pos().y, s.pos().z, s.dir(), 0f);
+                    }
+                }
+                case STAIRS -> {
+                    if (s.kind() == Socket.Kind.CELL) {
+                        double view = Geo.angle(look.x, look.z), bestYaw = q.yaw(), bestDiff = 1e9;
+                        for (int k = 0; k < 4; k++) {
+                            double yaw = q.yaw() + 90.0 * k;
+                            double d = Geo.diff(yaw, view);
+                            if (d < bestDiff) { bestDiff = d; bestYaw = yaw; }
+                        }
+                        p = Piece.blank(type, s.pos().x, s.pos().y, s.pos().z, bestYaw, 0f);
+                    }
                 }
             }
+            if (p != null) {
+                double[] a = PieceDef.anchor(type);
+                Vec3 center = p.toWorld(a[0], a[1], a[2]);
+                out.add(new Cand(p, center.distanceTo(aim)));
+            }
         }
-        Piece piece = Piece.blank(type, a[0], a[1], floorY, dir, 0);
-        return new Placement(piece, reason == null, reason);
+        return out;
     }
 
-    // ------------------------------------------------------------------ FOUNDATION_STEPS
-    @Nullable
-    private static Placement steps(Level level, BlockHitResult hit, int floorY, PieceType type) {
-        if (floorY == NONE) return null;
-        int[] a = anchor(level, hit.getBlockPos(), floorY);
-        if (a == null) return null;
-        Direction d = side(hit.getLocation(), a[0], a[1]);
-        Piece piece = Piece.blank(type, a[0], a[1], floorY, d, 0);
+    /** Совмещает стыковочный сокет нового элемента с сокетом s: сокеты смотрят друг на друга. */
+    private static Piece alignSlab(PieceType type, Piece.WorldSocket s, Socket.Kind plugKind) {
+        Socket plug = PieceDef.plug(type, plugKind);
+        if (plug == null) return null;
+        double yaw = Geo.norm(s.dir() + 180.0 - plug.dir());
+        double[] r = Geo.rotY(plug.x(), plug.z(), yaw);
+        return Piece.blank(type, s.pos().x - r[0], s.pos().y - plug.y(), s.pos().z - r[1], yaw, 0f);
+    }
 
+    // ------------------------------------------------------------------ проверки
+    private static Placement finish(Level level, Piece piece, List<Piece> near) {
         String reason = null;
-        if (!hasFill(level, a[0], a[1], floorY)) {
-            reason = "not_foundation";
-        } else {
-            for (BlockEntry e : piece.entries()) {
-                if (!level.getBlockState(e.pos()).canBeReplaced()) { reason = "blocked"; break; }
-                if (level.getBlockState(e.pos().below()).canBeReplaced()) { reason = "unsupported"; break; }
-            }
+        if (piece.type().isRoot()) {
+            float depth = computeDepth(level, piece);
+            if (depth < 0) reason = "no_ground";
+            else piece = piece.withDepth(depth);
         }
+        if (reason == null) reason = check(level, piece, near);
         return new Placement(piece, reason == null, reason);
     }
 
-    // ------------------------------------------------------------------ helpers
-    private static boolean isKind(BlockState s, Kind k) {
-        return s.getBlock() instanceof BuildingBlock && s.getValue(BuildingBlock.KIND) == k;
-    }
-
-    private static boolean hasSlab(Level level, int gx, int gz, int y) {
-        for (int[] c : CORNERS) {
-            if (isKind(level.getBlockState(new BlockPos(gx * P + c[0], y, gz * P + c[1])), Kind.FLOOR)) return true;
-        }
-        return false;
-    }
-
-    private static boolean hasFill(Level level, int gx, int gz, int y) {
-        for (int[] c : CORNERS) {
-            if (isKind(level.getBlockState(new BlockPos(gx * P + c[0], y - 1, gz * P + c[1])), Kind.FILL)) return true;
-        }
-        return false;
-    }
-
-    /** Y плиты пола, к которой относится блок постройки, в который целится игрок. */
-    private static int findFloorY(Level level, BlockPos hp, BlockState hs) {
-        Kind k = hs.getValue(BuildingBlock.KIND);
-        if (k == Kind.FLOOR) return hp.getY();
-        int step = k == Kind.WALL ? -1 : 1;
-        int limit = k == Kind.WALL ? 6 : 16;
-        for (int i = 1; i <= limit; i++) {
-            BlockPos p = hp.offset(0, step * i, 0);
-            BlockState s = level.getBlockState(p);
-            if (isKind(s, Kind.FLOOR)) return p.getY();
-            if (!(s.getBlock() instanceof BuildingBlock)) break;
-        }
-        return NONE;
-    }
-
-    /** Клетка, у которой на высоте y есть плита и которая содержит блок hp (с учётом общих линий). */
     @Nullable
-    private static int[] anchor(Level level, BlockPos hp, int y) {
-        int[] xs = {Math.floorDiv(hp.getX(), P), Math.floorDiv(hp.getX() - 1, P)};
-        int[] zs = {Math.floorDiv(hp.getZ(), P), Math.floorDiv(hp.getZ() - 1, P)};
-        for (int gx : xs) {
-            for (int gz : zs) {
-                if (hasSlab(level, gx, gz, y)) return new int[]{gx, gz};
+    private static String check(Level level, Piece p, List<Piece> near) {
+        boolean foundation = p.type().isRoot();
+        List<Vec3> samples = samples(p, foundation);
+
+        for (Piece q : near) {
+            if (q.id().equals(p.id()) && !p.id().equals(net.minecraft.Util.NIL_UUID)) continue;
+            if (q.pos().distanceTo(p.pos()) > 8.0) continue;
+            if (p.type().isWall() && q.type().isWall()) {
+                // стены разных рёбер сходятся в углах - это нормально; запрещён только дубликат на том же ребре
+                if (q.pos().distanceTo(p.pos()) < 0.3 && Geo.diff(Geo.norm(q.yaw() * 2), Geo.norm(p.yaw() * 2)) < 8.0) return "blocked";
+                continue;
             }
+            List<Solid> qs = q.solids();
+            for (Vec3 w : samples) {
+                Vec3 l = q.toLocal(w);
+                for (Solid s : qs) if (s.contains(l.x, l.y, l.z, 0.0)) return "blocked";
+            }
+        }
+
+        for (Vec3 w : samples) {
+            BlockPos bp = BlockPos.containing(w);
+            BlockState st = level.getBlockState(bp);
+            if (!st.getFluidState().isEmpty() && (!foundation || w.y > p.y() - 0.3)) return "water";
+            if (foundation || st.getBlock() instanceof CollisionBlock) continue;
+            VoxelShape sh = st.getCollisionShape(level, bp);
+            if (!sh.isEmpty() && sh.bounds().move(bp).contains(w)) return "blocked";
         }
         return null;
     }
 
-    /** В какую сторону от центра клетки смотрит точка прицеливания. */
-    private static Direction side(Vec3 loc, int gx, int gz) {
-        double dx = loc.x - (gx * P + 3.0);
-        double dz = loc.z - (gz * P + 3.0);
-        if (Math.abs(dx) > Math.abs(dz)) return dx > 0 ? Direction.EAST : Direction.WEST;
-        return dz > 0 ? Direction.SOUTH : Direction.NORTH;
-    }
-
-    /** Угол прямого угла треугольника: NORTH=СЗ, EAST=СВ, SOUTH=ЮВ, WEST=ЮЗ. */
-    private static Direction triCorner(Vec3 loc, int gx, int gz, @Nullable Direction attach, @Nullable int[] a) {
-        if (attach == null || a == null) {
-            boolean west = loc.x < gx * P + 3.0, north = loc.z < gz * P + 3.0;
-            if (north) return west ? Direction.NORTH : Direction.EAST;
-            return west ? Direction.WEST : Direction.SOUTH;
-        }
-        boolean west = loc.x < a[0] * P + 3.0, north = loc.z < a[1] * P + 3.0;
-        return switch (attach) {
-            case EAST -> north ? Direction.NORTH : Direction.WEST;
-            case WEST -> north ? Direction.EAST : Direction.SOUTH;
-            case SOUTH -> west ? Direction.NORTH : Direction.EAST;
-            default -> west ? Direction.WEST : Direction.SOUTH;
-        };
-    }
-
-    private static int cellAxis(int blockCoord, double playerCoord) {
-        int c = Math.floorDiv(blockCoord, P);
-        if (Math.floorMod(blockCoord, P) == 0 && playerCoord < blockCoord + 0.5) c--;
-        return c;
-    }
-
-    /** Подгонка высоты нового фундамента под соседний (как "сокеты" в Rust). */
-    private static int snapY(Level level, int gx, int gz, int b) {
-        int[][] n = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-        for (int[] o : n) {
-            int nx = gx + o[0], nz = gz + o[1];
-            for (int y = b + 2; y >= b - 2; y--) {
-                if (hasSlab(level, nx, nz, y) && hasFill(level, nx, nz, y)) return y;
+    /** Точки внутри тела элемента (мировые) для проверок пересечений. */
+    private static List<Vec3> samples(Piece p, boolean topOnly) {
+        List<Vec3> out = new ArrayList<>();
+        double step = p.type().isStairs() ? 0.45 : 0.32;
+        for (Solid s : p.solids()) {
+            AABB b = s.bounds();
+            double y0 = topOnly ? Math.max(b.minY, -0.45) : b.minY;
+            for (double lx : axis(b.minX, b.maxX, step)) {
+                for (double ly : axis(y0, b.maxY, step)) {
+                    for (double lz : axis(b.minZ, b.maxZ, step)) {
+                        if (s.contains(lx, ly, lz, 0.04)) out.add(p.toWorld(lx, ly, lz));
+                    }
+                }
             }
         }
-        return NONE;
+        return out;
     }
 
-    private static boolean terrain(BlockState s) {
-        return s.canBeReplaced() || s.is(BlockTags.DIRT) || s.is(BlockTags.SAND)
-                || s.is(BlockTags.BASE_STONE_OVERWORLD) || s.is(BlockTags.SNOW);
+    private static double[] axis(double min, double max, double step) {
+        double a = min + 0.05, b = max - 0.05;
+        if (b <= a) return new double[]{(min + max) / 2};
+        int n = Math.max(1, (int) Math.ceil((b - a) / step));
+        double[] r = new double[n + 1];
+        for (int i = 0; i <= n; i++) r[i] = a + (b - a) * i / n;
+        return r;
     }
 
-    private static boolean slabFree(Level level, Piece piece) {
-        int x0 = piece.gx() * P, z0 = piece.gz() * P;
-        for (int[] q : piece.slabPositions()) {
-            BlockState s = level.getBlockState(new BlockPos(x0 + q[0], piece.baseY(), z0 + q[1]));
-            if (s.getBlock() instanceof BuildingBlock) {
-                boolean border = q[0] == 0 || q[0] == P || q[1] == 0 || q[1] == P;
-                if (!(border && isKind(s, Kind.FLOOR))) return false;
-            } else if (!terrain(s)) {
-                return false;
-            }
+    // ------------------------------------------------------------------ земля под фундаментом
+    private static float computeDepth(Level level, Piece p) {
+        double top = p.y();
+        double min = top;
+        List<double[]> pts = new ArrayList<>();
+        List<double[]> poly = PieceDef.footprint(p.type());
+        double cx = 0, cz = 0;
+        for (double[] v : poly) { pts.add(v); cx += v[0]; cz += v[1]; }
+        pts.add(new double[]{cx / poly.size(), cz / poly.size()});
+        for (int i = 0; i < poly.size(); i++) {
+            double[] a = poly.get(i), b = poly.get((i + 1) % poly.size());
+            pts.add(new double[]{(a[0] + b[0]) / 2, (a[1] + b[1]) / 2});
+            pts.add(new double[]{(a[0] + b[0]) / 2 * 0.5, (a[1] + b[1]) / 2 * 0.5});
         }
-        return true;
+        for (double[] q : pts) {
+            Vec3 w = p.toWorld(q[0], 0, q[1]);
+            double g = groundTop(level, w.x, w.z, top);
+            if (Double.isNaN(g)) return -1f;
+            min = Math.min(min, g);
+        }
+        double depth = Math.max(0.5, top - min + 0.25);
+        return depth > 12.0 ? -1f : (float) depth;
     }
 
-    private static boolean roofFree(Level level, Piece piece) {
-        for (BlockEntry e : piece.entries()) {
-            BlockState s = level.getBlockState(e.pos());
-            if (s.canBeReplaced()) continue;
-            // общая линия с соседней крышей допустима
-            if (!(s.getBlock() instanceof SlabBlock)) return false;
+    private static double groundTop(Level level, double x, double z, double top) {
+        int startY = (int) Math.floor(top) + 2;
+        for (int y = startY; y >= startY - 30; y--) {
+            BlockPos bp = new BlockPos((int) Math.floor(x), y, (int) Math.floor(z));
+            BlockState st = level.getBlockState(bp);
+            if (st.getBlock() instanceof CollisionBlock) continue;
+            VoxelShape sh = st.getCollisionShape(level, bp);
+            if (!sh.isEmpty()) return y + sh.max(Direction.Axis.Y);
         }
-        return true;
+        return Double.NaN;
     }
 
-    /** Простая проверка опоры при постановке (полную устойчивость считает Stability на сервере). */
-    private static boolean supported(Level level, Piece piece) {
-        if (count(level, piece.perimeterBelow()) >= 4) return true;
-        int b = piece.baseY();
-        int[][] n = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-        for (int[] o : n) {
-            int nx = piece.gx() + o[0], nz = piece.gz() + o[1];
-            if (hasSlab(level, nx, nz, b) && count(level, Piece.blank(PieceType.FLOOR, nx, nz, b, Direction.NORTH, 0).perimeterBelow()) >= 4) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static int count(Level level, List<BlockPos> below) {
-        int c = 0;
-        for (BlockPos p : below) {
-            if (!level.getBlockState(p).canBeReplaced()) c++;
-        }
-        return c;
+    /** Луч по твёрдой земле: невидимые блоки-коллайдеры элементов пропускаются. */
+    @Nullable
+    public static BlockHitResult terrainRay(Level level, Vec3 from, Vec3 to) {
+        return BlockGetter.traverseBlocks(from, to, level, (lvl, pos) -> {
+            BlockState st = lvl.getBlockState(pos);
+            if (st.getBlock() instanceof CollisionBlock) return null;
+            VoxelShape shape = st.getCollisionShape(lvl, pos);
+            return shape.isEmpty() ? null : shape.clip(from, to, pos);
+        }, ctx -> null);
     }
 }

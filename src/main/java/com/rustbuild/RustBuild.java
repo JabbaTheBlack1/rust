@@ -4,6 +4,7 @@ import com.rustbuild.block.ModBlockEntities;
 import com.rustbuild.block.ModBlocks;
 import com.rustbuild.block.ModMenus;
 import com.rustbuild.client.ClientInit;
+import com.rustbuild.entity.ModEntities;
 import com.rustbuild.event.ServerEvents;
 import com.rustbuild.item.ModItems;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -24,6 +25,7 @@ public class RustBuild {
         ModBlocks.BLOCKS.register(bus);
         ModBlockEntities.TYPES.register(bus);
         ModMenus.MENUS.register(bus);
+        ModEntities.ENTITY_TYPES.register(bus);
         ModItems.ITEMS.register(bus);
         bus.addListener(this::addCreative);
         MinecraftForge.EVENT_BUS.register(ServerEvents.class);

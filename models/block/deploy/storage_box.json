@@ -1,0 +1,147 @@
+{
+ "ambientocclusion": false,
+ "textures": {
+  "panel": "rustbuild:block/wood_panel",
+  "beam": "rustbuild:block/wood_beam",
+  "floor": "rustbuild:block/wood_floor",
+  "particle": "rustbuild:block/wood_panel"
+ },
+ "elements": [
+  {
+   "from": [
+    2.6667,
+    0.0,
+    4.2667
+   ],
+   "to": [
+    13.3333,
+    7.4667,
+    11.7333
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0.308,
+      2.0,
+      15.692,
+      16.0
+     ],
+     "texture": "#panel"
+    },
+    "south": {
+     "uv": [
+      0.308,
+      2.0,
+      15.692,
+      16.0
+     ],
+     "texture": "#panel"
+    },
+    "east": {
+     "uv": [
+      0.432,
+      2.0,
+      15.568,
+      16.0
+     ],
+     "texture": "#panel"
+    },
+    "west": {
+     "uv": [
+      0.432,
+      2.0,
+      15.568,
+      16.0
+     ],
+     "texture": "#panel"
+    },
+    "up": {
+     "uv": [
+      0.308,
+      0.432,
+      15.692,
+      15.568
+     ],
+     "texture": "#floor"
+    },
+    "down": {
+     "uv": [
+      0.308,
+      0.432,
+      15.692,
+      15.568
+     ],
+     "texture": "#panel"
+    }
+   }
+  },
+  {
+   "from": [
+    2.4533,
+    7.4667,
+    4.0533
+   ],
+   "to": [
+    13.5467,
+    8.5333,
+    11.9467
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      2.0
+     ],
+     "texture": "#beam"
+    },
+    "south": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      2.0
+     ],
+     "texture": "#beam"
+    },
+    "east": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      2.0
+     ],
+     "texture": "#beam"
+    },
+    "west": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      2.0
+     ],
+     "texture": "#beam"
+    },
+    "up": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      16.0
+     ],
+     "texture": "#floor"
+    },
+    "down": {
+     "uv": [
+      0.0,
+      0.0,
+      16.0,
+      16.0
+     ],
+     "texture": "#beam"
+    }
+   }
+  }
+ ]
+}

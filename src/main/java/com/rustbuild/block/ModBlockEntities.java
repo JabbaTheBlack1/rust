@@ -14,5 +14,9 @@ public final class ModBlockEntities {
             TYPES.register("tool_cupboard", () ->
                     BlockEntityType.Builder.of(ToolCupboardBlockEntity::new, ModBlocks.TOOL_CUPBOARD.get()).build(null));
 
+    public static final RegistryObject<BlockEntityType<CollisionBlockEntity>> COLLISION =
+            TYPES.register("collision", () ->
+                    BlockEntityType.Builder.of(CollisionBlockEntity::new, ModBlocks.COLLISION.get()).build(null));
+
     private ModBlockEntities() {}
 }

@@ -43,6 +43,12 @@ public class PieceRenderer extends EntityRenderer<PieceEntity> {
         ps.mulPose(Axis.YP.rotationDegrees(e.pieceYaw()));
         if (e.pieceType().family == PieceType.Family.ROOF) ps.translate(0.0, 0.0, 1.5);   // модель крыши сдвинута к центру блока
         float sy = e.pieceType().isRoot() ? e.depth() : 1.5f;     // у фундамента модель растягивается до земли
+        if (e.pieceType().family == PieceType.Family.WALL) {
+            // соседние стены под разными углами получают чуть разную высоту (3 мм на шаг 30 градусов),
+            // иначе верхние грани в общем углу совпадают по глубине и мерцают
+            int k = Math.floorMod((int) Math.floor(e.pieceYaw() / 30.0), 12);
+            sy = 1.5f * (1.0f + 0.003f * k / 2.75f);
+        }
         ps.scale(1.5f, sy, 1.5f);
         ps.translate(-0.5, 0.0, -0.5);
         Minecraft.getInstance().getBlockRenderer().renderSingleBlock(st, ps, buf, packed, OverlayTexture.NO_OVERLAY);

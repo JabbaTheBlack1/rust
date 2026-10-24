@@ -2,8 +2,8 @@
  "ambientocclusion": false,
  "textures": {
   "panel": "rustbuild:block/metal_panel",
-  "floor": "rustbuild:block/metal_floor",
   "beam": "rustbuild:block/metal_beam",
+  "floor": "rustbuild:block/metal_floor",
   "particle": "rustbuild:block/metal_panel"
  },
  "elements": [

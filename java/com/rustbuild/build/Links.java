@@ -29,6 +29,9 @@ public final class Links {
         for (Piece.WorldSocket x : sa) {
             for (Piece.WorldSocket y : sb) {
                 if (!near(x, y)) continue;
+                if (x.kind() == Socket.Kind.BASE_PLUG && ta.isWall() && tb.isWall() && y.kind() == Socket.Kind.WALL_TOP) {
+                    return Rel.BASE;     // стена стоит на верхе другой стены
+                }
                 if (x.kind() == Socket.Kind.BASE_PLUG && tb.isSlab()) {
                     if (ta.isWall() || ta.family == PieceType.Family.STEPS) {
                         if (y.kind() == Socket.Kind.EDGE_TOP) return Rel.BASE;

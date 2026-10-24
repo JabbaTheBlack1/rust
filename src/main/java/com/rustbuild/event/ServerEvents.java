@@ -1,11 +1,12 @@
 package com.rustbuild.event;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
-import com.rustbuild.block.BuildingBlock;
+import com.rustbuild.block.CollisionBlock;
 import com.rustbuild.block.ToolCupboardBlock;
 import com.rustbuild.build.BuildActions;
 import com.rustbuild.build.BuildingData;
 import com.rustbuild.build.Piece;
+import com.rustbuild.build.PieceRaycast;
 import com.rustbuild.build.PieceType;
 import com.rustbuild.build.Privilege;
 import com.rustbuild.build.Tier;
@@ -13,7 +14,6 @@ import com.rustbuild.item.BuildingPlanItem;
 import com.rustbuild.item.HammerItem;
 import com.rustbuild.item.ItemData;
 import net.minecraft.commands.Commands;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -34,34 +34,31 @@ import net.minecraftforge.event.level.ExplosionEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.server.ServerLifecycleHooks;
 
-import java.util.List;
-
 public final class ServerEvents {
     private ServerEvents() {}
 
-    // ------------------------------------------------------------------ разрушение руками (креатив)
-    /** В выживании ломать элементы руками нельзя (урон наносится ударом, см. onLeftClick). В креативе - целиком. */
+    // ------------------------------------------------------------------ ломание
+    /** Невидимые блоки-коллайдеры не ломаются; в креативе удар разрушает весь элемент, на который смотрит игрок. */
     @SubscribeEvent
     public static void onBreak(BlockEvent.BreakEvent e) {
         if (!(e.getLevel() instanceof ServerLevel level)) return;
         BlockState st = e.getState();
+        Player p = e.getPlayer();
+
         if (st.getBlock() instanceof ToolCupboardBlock) {
-            Player p = e.getPlayer();
             if (!p.isCreative() && !Privilege.isAuthorized(level, e.getPos(), p)) {
                 e.setCanceled(true);
                 p.displayClientMessage(Component.translatable("msg.rustbuild.cupboard_locked"), true);
             }
             return;
         }
-        if (!BuildActions.isPieceBlock(st)) return;
-
-        BuildingData data = BuildingData.get(level);
-        Piece piece = data.findAt(e.getPos(), st);
-        if (piece == null) return; // записи нет (старая постройка) - ломается как обычный блок
+        if (!(st.getBlock() instanceof CollisionBlock)) return;
 
         e.setCanceled(true);
-        Player p = e.getPlayer();
-        if (p.isCreative()) BuildActions.destroyPiece(level, data, piece);
+        if (p.isCreative() && p instanceof ServerPlayer sp) {
+            PieceRaycast.Hit hit = BuildActions.pick(sp, level, BuildActions.REACH);
+            if (hit != null) BuildActions.destroyPiece(level, BuildingData.get(level), hit.piece());
+        }
     }
 
     // ------------------------------------------------------------------ удары: молоток / ближний бой
@@ -74,42 +71,30 @@ public final class ServerEvents {
         if (held.getItem() instanceof HammerItem) {
             e.setCanceled(true);
             if (lv.isClientSide() || e.getAction() != PlayerInteractEvent.LeftClickBlock.Action.START) return;
-            if (pl instanceof ServerPlayer sp && lv instanceof ServerLevel level) {
-                BuildActions.demolish(sp, level, e.getPos());
-            }
+            if (pl instanceof ServerPlayer sp && lv instanceof ServerLevel level) BuildActions.demolish(sp, level);
             return;
         }
 
-        BlockState st = lv.getBlockState(e.getPos());
-        if (!BuildActions.isPieceBlock(st) || pl.isCreative()) return;
-        if (st.getBlock() instanceof BuildingBlock) e.setCanceled(true); // и на клиенте: не показывать "ломание"
+        if (!(lv.getBlockState(e.getPos()).getBlock() instanceof CollisionBlock) || pl.isCreative()) return;
+        e.setCanceled(true);   // и на клиенте: не показывать "ломание"
 
         if (lv.isClientSide() || e.getAction() != PlayerInteractEvent.LeftClickBlock.Action.START) return;
         if (!(pl instanceof ServerPlayer sp) || !(lv instanceof ServerLevel level)) return;
-        BuildingData data = BuildingData.get(level);
-        Piece piece = data.findAt(e.getPos(), st);
-        if (piece == null) return;
-        e.setCanceled(true);
-
+        PieceRaycast.Hit hit = BuildActions.pick(sp, level, BuildActions.REACH);
+        if (hit == null) return;
+        Piece piece = hit.piece();
         if (BuildActions.canModify(level, sp, piece)) {
             sp.displayClientMessage(Component.translatable("msg.rustbuild.use_hammer"), true);
         } else {
-            BuildActions.melee(sp, level, data, piece);
+            BuildActions.melee(sp, level, BuildingData.get(level), piece);
         }
     }
 
-    // ------------------------------------------------------------------ взрывы наносят урон, а не ломают поштучно
+    // ------------------------------------------------------------------ взрывы наносят урон по радиусу
     @SubscribeEvent
     public static void onExplosion(ExplosionEvent.Detonate e) {
         if (!(e.getLevel() instanceof ServerLevel level)) return;
-        BuildingData data = BuildingData.get(level);
-        List<BlockPos> affected = e.getAffectedBlocks();
-
-        // блоки элементов не ломаются поштучно
-        affected.removeIf(pos -> {
-            BlockState st = level.getBlockState(pos);
-            return BuildActions.isPieceBlock(st) && data.findAt(pos, st) != null;
-        });
+        e.getAffectedBlocks().removeIf(pos -> level.getBlockState(pos).getBlock() instanceof CollisionBlock);
 
         Entity src = e.getExplosion().getDirectSourceEntity();
         if (src == null) return;
@@ -120,14 +105,11 @@ public final class ServerEvents {
             power = c.isPowered() ? 600f : 250f;
         }
 
-        double maxD = radius + 8.0;
-        for (Piece p : data.all()) {
-            BlockPos pc = p.center();
-            if (center.distanceToSqr(pc.getX() + 0.5, pc.getY() + 0.5, pc.getZ() + 0.5) > maxD * maxD) continue;
-            double best = Double.MAX_VALUE;
-            for (AABB box : p.previewBoxes()) best = Math.min(best, Math.sqrt(box.distanceToSqr(center)));
-            if (best >= radius) continue;
-            float dmg = (float) (power * (1.0 - best / radius));
+        BuildingData data = BuildingData.get(level);
+        for (Piece p : data.inBox(new AABB(center, center).inflate(radius + 4.0))) {
+            double d = BuildActions.distanceTo(p, center);
+            if (d >= radius) continue;
+            float dmg = (float) (power * (1.0 - d / radius));
             if (dmg > 0f) BuildActions.damage(level, data, p, dmg, true);
         }
     }
@@ -152,7 +134,7 @@ public final class ServerEvents {
         for (ServerLevel level : server.getAllLevels()) BuildActions.decay(level);
     }
 
-    // ------------------------------------------------------------------ команды радиального меню
+    // ------------------------------------------------------------------ команды меню и поворота
     @SubscribeEvent
     public static void onCommands(RegisterCommandsEvent e) {
         e.getDispatcher().register(Commands.literal("rustbuild")
@@ -166,6 +148,12 @@ public final class ServerEvents {
                         .then(Commands.argument("index", IntegerArgumentType.integer(0, Tier.values().length - 1))
                                 .executes(c -> {
                                     selectTier(c.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(c, "index"));
+                                    return 1;
+                                })))
+                .then(Commands.literal("rot")
+                        .then(Commands.argument("deg", IntegerArgumentType.integer(-360, 360))
+                                .executes(c -> {
+                                    rotate(c.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(c, "deg"));
                                     return 1;
                                 }))));
     }
@@ -184,5 +172,13 @@ public final class ServerEvents {
         Tier tier = Tier.values()[index];
         ItemData.setInt(stack, "tier", tier.ordinal());
         p.displayClientMessage(Component.translatable("msg.rustbuild.tier_selected", tier.displayName()), true);
+    }
+
+    private static void rotate(ServerPlayer p, int delta) {
+        ItemStack stack = p.getMainHandItem();
+        if (!(stack.getItem() instanceof BuildingPlanItem)) return;
+        int rot = Math.floorMod(BuildingPlanItem.getRot(stack) + delta, 360);
+        ItemData.setInt(stack, "rot", rot);
+        p.displayClientMessage(Component.translatable("msg.rustbuild.rotation", rot), true);
     }
 }

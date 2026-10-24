@@ -2,8 +2,8 @@
  "ambientocclusion": false,
  "textures": {
   "panel": "rustbuild:block/wood_panel",
-  "floor": "rustbuild:block/wood_floor",
   "beam": "rustbuild:block/wood_beam",
+  "floor": "rustbuild:block/wood_floor",
   "particle": "rustbuild:block/wood_panel"
  },
  "elements": [

@@ -2,8 +2,8 @@
  "ambientocclusion": false,
  "textures": {
   "panel": "rustbuild:block/twig_panel",
-  "floor": "rustbuild:block/twig_floor",
   "beam": "rustbuild:block/twig_beam",
+  "floor": "rustbuild:block/twig_floor",
   "particle": "rustbuild:block/twig_panel"
  },
  "elements": [
@@ -820,142 +820,6 @@
       16.0
      ],
      "texture": "#panel"
-    }
-   }
-  },
-  {
-   "from": [
-    -2.6667,
-    0.0,
-    -8.0
-   ],
-   "to": [
-    -1.3867,
-    32.0,
-    24.0
-   ],
-   "faces": {
-    "north": {
-     "uv": [
-      2.667,
-      0.0,
-      3.307,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "south": {
-     "uv": [
-      2.667,
-      0.0,
-      3.307,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "east": {
-     "uv": [
-      0.0,
-      0.0,
-      16.0,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "west": {
-     "uv": [
-      0.0,
-      0.0,
-      16.0,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "up": {
-     "uv": [
-      2.667,
-      0.0,
-      3.307,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "down": {
-     "uv": [
-      2.667,
-      0.0,
-      3.307,
-      16.0
-     ],
-     "texture": "#beam"
-    }
-   }
-  },
-  {
-   "from": [
-    17.3867,
-    0.0,
-    -8.0
-   ],
-   "to": [
-    18.6667,
-    32.0,
-    24.0
-   ],
-   "faces": {
-    "north": {
-     "uv": [
-      12.693,
-      0.0,
-      13.333,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "south": {
-     "uv": [
-      12.693,
-      0.0,
-      13.333,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "east": {
-     "uv": [
-      0.0,
-      0.0,
-      16.0,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "west": {
-     "uv": [
-      0.0,
-      0.0,
-      16.0,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "up": {
-     "uv": [
-      12.693,
-      0.0,
-      13.333,
-      16.0
-     ],
-     "texture": "#beam"
-    },
-    "down": {
-     "uv": [
-      12.693,
-      0.0,
-      13.333,
-      16.0
-     ],
-     "texture": "#beam"
     }
    }
   }

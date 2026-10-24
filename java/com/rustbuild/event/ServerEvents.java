@@ -10,7 +10,14 @@ import com.rustbuild.build.PieceRaycast;
 import com.rustbuild.build.PieceType;
 import com.rustbuild.build.Privilege;
 import com.rustbuild.build.Tier;
+import com.rustbuild.deploy.DeployActions;
+import com.rustbuild.deploy.DeployKind;
+import com.rustbuild.deploy.DeployResolver;
+import com.rustbuild.deploy.DeployableEntity;
 import com.rustbuild.item.BuildingPlanItem;
+import com.rustbuild.item.DeployableItem;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
 import com.rustbuild.item.HammerItem;
 import com.rustbuild.item.ItemData;
 import net.minecraft.commands.Commands;
@@ -90,6 +97,21 @@ public final class ServerEvents {
         }
     }
 
+    // ------------------------------------------------------------------ правый клик по свободному предмету сквозь коллизию
+    @SubscribeEvent
+    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock e) {
+        if (e.getHand() != InteractionHand.MAIN_HAND) return;
+        if (!(e.getLevel().getBlockState(e.getPos()).getBlock() instanceof CollisionBlock)) return;
+        var held = e.getItemStack().getItem();
+        if (held instanceof BuildingPlanItem || held instanceof HammerItem || held instanceof DeployableItem) return;
+        Player p = e.getEntity();
+        DeployableEntity d = DeployActions.pick(p, 6.0);
+        if (d == null) return;
+        e.setCanceled(true);
+        e.setCancellationResult(InteractionResult.SUCCESS);
+        if (!e.getLevel().isClientSide() && p instanceof ServerPlayer sp) d.interact(sp, InteractionHand.MAIN_HAND);
+    }
+
     // ------------------------------------------------------------------ взрывы наносят урон по радиусу
     @SubscribeEvent
     public static void onExplosion(ExplosionEvent.Detonate e) {
@@ -150,6 +172,11 @@ public final class ServerEvents {
                                     selectTier(c.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(c, "index"));
                                     return 1;
                                 })))
+                .then(Commands.literal("place")
+                        .executes(c -> {
+                            placeHeld(c.getSource().getPlayerOrException());
+                            return 1;
+                        }))
                 .then(Commands.literal("rot")
                         .then(Commands.argument("deg", IntegerArgumentType.integer(-360, 360))
                                 .executes(c -> {
@@ -174,10 +201,26 @@ public final class ServerEvents {
         p.displayClientMessage(Component.translatable("msg.rustbuild.tier_selected", tier.displayName()), true);
     }
 
+    /** V: поставить предмет из руки свободно в точку прицела под любым углом. */
+    private static void placeHeld(ServerPlayer p) {
+        ItemStack held = p.getMainHandItem();
+        if (held.isEmpty() || held.getItem() instanceof BuildingPlanItem || held.getItem() instanceof HammerItem) return;
+        if (!(p.level() instanceof ServerLevel level)) return;
+        DeployKind kind = held.getItem() instanceof DeployableItem di ? di.kind : DeployKind.forStack(held);
+        ItemStack one = held.copyWithCount(1);
+        BuildingData data = BuildingData.get(level);
+        DeployResolver.Placed pl = DeployResolver.resolve(level, p, kind, one, 0, box -> data.inBox(box));
+        if (pl == null) { p.displayClientMessage(Component.translatable("msg.rustbuild.aim_floor"), true); return; }
+        if (!pl.valid()) { p.displayClientMessage(Component.translatable("msg.rustbuild.invalid." + pl.reason()), true); return; }
+        if (DeployActions.place(p, level, kind, one, pl) && !p.isCreative()) held.shrink(1);
+    }
+
     private static void rotate(ServerPlayer p, int delta) {
         ItemStack stack = p.getMainHandItem();
-        if (!(stack.getItem() instanceof BuildingPlanItem)) return;
-        int rot = Math.floorMod(BuildingPlanItem.getRot(stack) + delta, 360);
+        boolean plan = stack.getItem() instanceof BuildingPlanItem;
+        if (!plan && !(stack.getItem() instanceof DeployableItem)) return;
+        int cur = plan ? BuildingPlanItem.getRot(stack) : DeployableItem.getRot(stack);
+        int rot = Math.floorMod(cur + delta, 360);
         ItemData.setInt(stack, "rot", rot);
         p.displayClientMessage(Component.translatable("msg.rustbuild.rotation", rot), true);
     }
